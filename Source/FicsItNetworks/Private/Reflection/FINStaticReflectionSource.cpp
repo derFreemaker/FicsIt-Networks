@@ -408,7 +408,8 @@ void UFINStaticReflectionSource::FillData(FFINReflection* Ref, UFINStruct* ToFil
 			Execute(FINTrace(nullptr), Params); \
 		}); \
 		void Execute(const FFINExecutionContext& Ctx, TArray<FINAny>& Params) { \
-		static bool _bGotReg = false;
+			int __ParamCounter__ = 0; \
+			static bool _bGotReg = false;
 #define GET_MACRO(_0, VAL,...) VAL
 #define BeginFunc(InternalName, DisplayName, Description, ...) BeginFuncRT(Member, InternalName, DisplayName, Description, false, 0, GET_MACRO(0 , ##__VA_ARGS__, 1) ) \
 		T* self = GetFromCtx(Ctx);
@@ -458,16 +459,25 @@ void UFINStaticReflectionSource::FillData(FFINReflection* Ref, UFINStruct* ToFil
 	};
 
 #define FINRefParamLocText(ParamName, KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(FName) + TEXT("_") + TEXT(ParamName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
-#define InVal(Pos, Type, InternalName, DisplayName, Description) \
+#define InVal(Type, InternalName, DisplayName, Description) \
 	Type::CppType InternalName = Type::CppType(); \
-	if (!_bGotReg) { UFINStaticReflectionSource::AddFuncParam(GetUType(), F, Pos, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 0, &Type::PropConstructor});  } \
-	else InternalName = Type::Get(Params[Pos]);
-#define OutVal(Pos, Type, InternalName, DisplayName, Description) \
-	FINAny& InternalName = _bGotReg ? Params[Pos] : *(FINAny*)nullptr; \
-	if (!_bGotReg) { UFINStaticReflectionSource::AddFuncParam(GetUType(), F, Pos, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 1, &Type::PropConstructor}); }
-#define RetVal(Pos, Type, InternalName, DisplayName, Description) \
-	FINAny& InternalName = _bGotReg ? Params[Pos] : *(FINAny*)nullptr; \
-	if (!_bGotReg) { UFINStaticReflectionSource::AddFuncParam(GetUType(), F, Pos, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 3, &Type::PropConstructor}); }
+	if (!_bGotReg) { \
+		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 0, &Type::PropConstructor}); \
+		__ParamCounter__++; \
+	} \
+	else InternalName = Type::Get(Params[__ParamCounter__]);
+#define OutVal(Type, InternalName, DisplayName, Description) \
+	FINAny& InternalName = _bGotReg ? Params[__ParamCounter__] : *(FINAny*)nullptr; \
+	if (!_bGotReg) { \
+		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 1, &Type::PropConstructor}); \
+		__ParamCounter__++; \
+	}
+#define RetVal(Type, InternalName, DisplayName, Description) \
+	FINAny& InternalName = _bGotReg ? Params[__ParamCounter__] : *(FINAny*)nullptr; \
+	if (!_bGotReg) { \
+		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 3, &Type::PropConstructor}); \
+		__ParamCounter__++; \
+	}
 
 #define FINRefSignalLocText(KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(SName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
 #define FINRefSignalParamLocText(ParamName, KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(SName) + TEXT("_") + TEXT(ParamName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
@@ -475,11 +485,13 @@ void UFINStaticReflectionSource::FillData(FFINReflection* Ref, UFINStruct* ToFil
 #define BeginSignal(InternalName, DisplayName, Description, ...) \
 	namespace SignalClassName(InternalName) { \
 		const int S = __COUNTER__; \
+		int __ParamCounter__ = 0; \
 		constexpr auto SName = TEXT(#InternalName) ; \
 		FFINStaticGlobalRegisterFunc RegSignal([](){ \
 			UFINStaticReflectionSource::AddSignal(GetUType(), S, FFINStaticSignalReg{TEXT(#InternalName), FINRefSignalLocText("DisplayName", DisplayName), FINRefSignalLocText("Description", Description), GET_MACRO(0, ##__VA_ARGS__, false)});
-#define SignalParam(Pos, Type, InternalName, DisplayName, Description) \
-			UFINStaticReflectionSource::AddSignalParam(GetUType(), S, Pos, FFINStaticSignalParamReg{TEXT(#InternalName), FINRefSignalParamLocText(#InternalName, "DisplayName", DisplayName), FINRefSignalParamLocText(#InternalName, "Description", Description), &Type::PropConstructor});
+#define SignalParam(Type, InternalName, DisplayName, Description) \
+			UFINStaticReflectionSource::AddSignalParam(GetUType(), S, __ParamCounter__, FFINStaticSignalParamReg{TEXT(#InternalName), FINRefSignalParamLocText(#InternalName, "DisplayName", DisplayName), FINRefSignalParamLocText(#InternalName, "Description", Description), &Type::PropConstructor}); \
+			__ParamCounter__++;
 #define EndSignal() \
 		}); \
 	};
@@ -608,18 +620,18 @@ BeginProp(RString, internalPath, "internalPath", "The unreal engine internal pat
 	Return (FINStr) self->GetPathName();
 } EndProp()
 BeginFunc(getHash, "Get Hash", "Returns a hash of this object. This is a value that nearly uniquely identifies this object.") {
-	OutVal(0, RInt, hash, "Hash", "The hash of this object.");
+	OutVal(RInt, hash, "Hash", "The hash of this object.");
 	Body()
 	hash = (int64)GetTypeHash(self);
 } EndFunc()
 BeginFunc(getType, "Get Type", "Returns the type (aka class) of this object.") {
-	OutVal(0, RObject<UFINClass>, type, "Type", "The type of this object");
+	OutVal(RObject<UFINClass>, type, "Type", "The type of this object");
 	Body()
 	if (self) type = (FINObj)FFINReflection::Get()->FindClass(self->GetClass());
 } EndFunc()
 BeginFunc(isA, "Is A", "Checks if this Object is a child of the given typen.") {
-	InVal(0, RClass<UObject>, parent, "Parent", "The parent we check if this object is a child of.")
-	OutVal(1, RBool, isChild, "Is Child", "True if this object is a child of the given type.")
+	InVal(RClass<UObject>, parent, "Parent", "The parent we check if this object is a child of.")
+	OutVal(RBool, isChild, "Is Child", "True if this object is a child of the given type.")
 	Body()
 	isChild = (FINBool)self->IsA(parent);
 } EndFunc()
@@ -633,18 +645,18 @@ BeginClassProp(RString, internalPath, "internalPath", "The unreal engine interna
 	Return (FINStr) self->GetPathName();
 } EndProp()
 BeginClassFunc(getHash, "Get Hash", "Returns the hash of this class. This is a value that nearly uniquely idenfies this object.", false) {
-	OutVal(0, RInt, hash, "Hash", "The hash of this class.");
+	OutVal(RInt, hash, "Hash", "The hash of this class.");
 	Body()
 	hash = (int64) GetTypeHash(self);
 } EndFunc()
 BeginClassFunc(getType, "Get Type", "Returns the type (aka class) of this class instance.", false) {
-	OutVal(0, RObject<UFINClass>, type, "Type", "The type of this class instance");
+	OutVal(RObject<UFINClass>, type, "Type", "The type of this class instance");
 	Body()
     if (self) type = (FINObj)FFINReflection::Get()->FindClass(self);
 } EndFunc()
 BeginClassFunc(isChildOf, "Is Child Of", "Checks if this Type is a child of the given typen.", false) {
-	InVal(0, RClass<UObject>, parent, "Parent", "The parent we check if this type is a child of.")
-	OutVal(1, RBool, isChild, "Is Child", "True if this type is a child of the given type.")
+	InVal(RClass<UObject>, parent, "Parent", "The parent we check if this type is a child of.")
+	OutVal(RBool, isChild, "Is Child", "True if this type is a child of the given type.")
 	Body()
 	isChild = (FINBool)self->IsChildOf(parent);
 } EndFunc()
@@ -667,41 +679,41 @@ BeginProp(RBool, isConstructable, "Is Constructable", "True if this struct can b
 	Return (FINBool)(self->GetStructFlags() & FIN_Struct_Constructable);
 } EndProp()
 BeginFunc(getParent, "Get Parent", "Returns the parent type of this type.", false) {
-	OutVal(0, RObject<UFINClass>, parent, "Parent", "The parent type of this type.");
+	OutVal(RObject<UFINClass>, parent, "Parent", "The parent type of this type.");
 	Body()
     if (self) parent = (FINObj)self->GetParent();
 } EndFunc()
 BeginFunc(getProperties, "Get Properties", "Returns all the properties of this type.") {
-	OutVal(0, RArray<RObject<UFINProperty>>, properties, "Properties", "The properties this specific type implements (excluding properties from parent types).")
+	OutVal(RArray<RObject<UFINProperty>>, properties, "Properties", "The properties this specific type implements (excluding properties from parent types).")
 	Body()
 	TArray<FINAny> Props;
 	for (UFINProperty* Prop : self->GetProperties(false)) Props.Add((FINObj)Prop);
 	properties = Props;
 } EndFunc()
 BeginFunc(getAllProperties, "Get All Properties", "Returns all the properties of this and parent types.") {
-	OutVal(0, RArray<RObject<UFINProperty>>, properties, "Properties", "The properties this type implements including properties from parent types.")
+	OutVal(RArray<RObject<UFINProperty>>, properties, "Properties", "The properties this type implements including properties from parent types.")
     Body()
     TArray<FINAny> Props;
 	for (UFINProperty* Prop : self->GetProperties(true)) Props.Add((FINObj)Prop);
 	properties = Props;
 } EndFunc()
 BeginFunc(getFunctions, "Get Functions", "Returns all the functions of this type.") {
-	OutVal(0, RArray<RObject<UFINFunction>>, functions, "Functions", "The functions this specific type implements (excluding properties from parent types).")
+	OutVal(RArray<RObject<UFINFunction>>, functions, "Functions", "The functions this specific type implements (excluding properties from parent types).")
     Body()
     TArray<FINAny> Funcs;
 	for (UFINFunction* Func : self->GetFunctions(false)) Funcs.Add((FINObj)Func);
 	functions = Funcs;
 } EndFunc()
 BeginFunc(getAllFunctions, "Get All Functions", "Returns all the functions of this and parent types.") {
-	OutVal(0, RArray<RObject<UFINProperty>>, functions, "Functions", "The functions this type implements including functions from parent types.")
+	OutVal(RArray<RObject<UFINProperty>>, functions, "Functions", "The functions this type implements including functions from parent types.")
     Body()
     TArray<FINAny> Funcs;
 	for (UFINFunction* Func : self->GetFunctions(true)) Funcs.Add((FINObj)Func);
 	functions = Funcs;
 } EndFunc()
 BeginFunc(isChildOf, "Is Child Of", "Allows to check if this struct is a child struct of the given struct or the given struct it self.") {
-	InVal(0, RObject<UFINStruct>, parent, "Parent", "The parent struct you want to check if this struct is a child of.")
-    OutVal(1, RBool, isChild, "Is Child", "True if this struct is a child of parent.")
+	InVal(RObject<UFINStruct>, parent, "Parent", "The parent struct you want to check if this struct is a child of.")
+    OutVal(RBool, isChild, "Is Child", "True if this struct is a child of parent.")
     Body()
     if (self && parent.IsValid()) isChild = self->IsChildOf(Cast<UFINStruct>(parent.Get()));
 } EndFunc()
@@ -709,14 +721,14 @@ EndClass()
 
 BeginClass(UFINClass, "Class", "Class", "Object that contains all information about a type.")
 BeginFunc(getSignals, "Get Signals", "Returns all the signals of this type.") {
-	OutVal(0, RArray<RObject<UFINSignal>>, signals, "Signals", "The signals this specific type implements (excluding properties from parent types).")
+	OutVal(RArray<RObject<UFINSignal>>, signals, "Signals", "The signals this specific type implements (excluding properties from parent types).")
     Body()
     TArray<FINAny> Sigs;
 	for (UFINSignal* Sig : self->GetSignals(false)) Sigs.Add((FINObj)Sig);
 	signals = Sigs;
 } EndFunc()
 BeginFunc(getAllSignals, "Get All Signals", "Returns all the signals of this and its parent types.") {
-	OutVal(0, RArray<RObject<UFINSignal>>, signals, "Signals", "The signals this type and all it parents implement.")
+	OutVal(RArray<RObject<UFINSignal>>, signals, "Signals", "The signals this type and all it parents implement.")
     Body()
     TArray<FINAny> Sigs;
 	for (UFINSignal* Sig : self->GetSignals(true)) Sigs.Add((FINObj)Sig);
@@ -735,7 +747,7 @@ EndClass()
 
 BeginClass(UFINArrayProperty, "ArrayProperty", "Array Property", "A reflection object representing a array property.")
 BeginFunc(getInner, "Get Inner", "Returns the inner type of this array.") {
-	OutVal(0, RObject<UFINProperty>, inner, "Inner", "The inner type of this array.")
+	OutVal(RObject<UFINProperty>, inner, "Inner", "The inner type of this array.")
 	Body()
 	inner = (FINObj) self->GetInnerType();
 } EndFunc()
@@ -743,7 +755,7 @@ EndClass()
 
 BeginClass(UFINObjectProperty, "ObjectProperty", "Object Property", "A reflection object representing a object property.")
 BeginFunc(getSubclass, "Get Subclass", "Returns the subclass type of this object. Meaning, the stored objects need to be of this type.") {
-	OutVal(0, RObject<UFINClass>, subclass, "Subclass", "The subclass of this object.")
+	OutVal(RObject<UFINClass>, subclass, "Subclass", "The subclass of this object.")
     Body()
     subclass = (FINObj) FFINReflection::Get()->FindClass(self->GetSubclass());
 } EndFunc()
@@ -751,7 +763,7 @@ EndClass()
 
 BeginClass(UFINTraceProperty, "TraceProperty", "Trace Property", "A reflection object representing a trace property.")
 BeginFunc(getSubclass, "Get Subclass", "Returns the subclass type of this trace. Meaning, the stored traces need to be of this type.") {
-	OutVal(0, RObject<UFINClass>, subclass, "Subclass", "The subclass of this trace.")
+	OutVal(RObject<UFINClass>, subclass, "Subclass", "The subclass of this trace.")
     Body()
     subclass = (FINObj) FFINReflection::Get()->FindClass(self->GetSubclass());
 } EndFunc()
@@ -759,7 +771,7 @@ EndClass()
 
 BeginClass(UFINClassProperty, "ClassProperty", "Class Property", "A reflection object representing a class property.")
 BeginFunc(getSubclass, "Get Subclass", "Returns the subclass type of this class. Meaning, the stored classes need to be of this type.") {
-	OutVal(0, RObject<UFINClass>, subclass, "Subclass", "The subclass of this class property.")
+	OutVal(RObject<UFINClass>, subclass, "Subclass", "The subclass of this class property.")
     Body()
     subclass = (FINObj) FFINReflection::Get()->FindClass(self->GetSubclass());
 } EndFunc()
@@ -767,7 +779,7 @@ EndClass()
 
 BeginClass(UFINStructProperty, "StructProperty", "Struct Property", "A reflection object representing a struct property.")
 BeginFunc(getSubclass, "Get Subclass", "Returns the subclass type of this struct. Meaning, the stored structs need to be of this type.") {
-	OutVal(0, RObject<UFINStruct>, subclass, "Subclass", "The subclass of this struct.")
+	OutVal(RObject<UFINStruct>, subclass, "Subclass", "The subclass of this struct.")
     Body()
     subclass = (FINObj) FFINReflection::Get()->FindStruct(self->GetInner());
 } EndFunc()
@@ -775,7 +787,7 @@ EndClass()
 
 BeginClass(UFINFunction, "Function", "Function", "A reflection object representing a function.")
 BeginFunc(getParameters, "Get Parameters", "Returns all the parameters of this function.") {
-	OutVal(0, RArray<RObject<UFINProperty>>, parameters, "Parameters", "The parameters this function.")
+	OutVal(RArray<RObject<UFINProperty>>, parameters, "Parameters", "The parameters this function.")
     Body()
     TArray<FINAny> ParamArray;
 	for (UFINProperty* Param : self->GetParameters()) ParamArray.Add((FINObj)Param);
@@ -788,7 +800,7 @@ EndClass()
 
 BeginClass(UFINSignal, "Signal", "Signal", "A reflection object representing a signal.")
 BeginFunc(getParameters, "Get Parameters", "Returns all the parameters of this signal.") {
-	OutVal(0, RArray<RObject<UFINProperty>>, parameters, "Parameters", "The parameters this signal.")
+	OutVal(RArray<RObject<UFINProperty>>, parameters, "Parameters", "The parameters this signal.")
     Body()
     TArray<FINAny> ParamArray;
 	for (UFINProperty* Param : self->GetParameters()) ParamArray.Add((FINObj)Param);
@@ -810,7 +822,7 @@ BeginProp(RStruct<FRotator>, rotation, "Rotation", "The rotation of the actor in
 	Return self->GetActorRotation();
 } EndProp()
 BeginFunc(getPowerConnectors, "Get Power Connectors", "Returns a list of power connectors this actor might have.") {
-	OutVal(0, RArray<RTrace<UFGPowerConnectionComponent>>, connectors, "Connectors", "The power connectors this actor has.");
+	OutVal(RArray<RTrace<UFGPowerConnectionComponent>>, connectors, "Connectors", "The power connectors this actor has.");
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -823,7 +835,7 @@ BeginFunc(getPowerConnectors, "Get Power Connectors", "Returns a list of power c
 	connectors = Output;
 } EndFunc()
 BeginFunc(getFactoryConnectors, "Get Factory Connectors", "Returns a list of factory connectors this actor might have.") {
-	OutVal(0, RArray<RTrace<UFGFactoryConnectionComponent>>, connectors, "Connectors", "The factory connectors this actor has.");
+	OutVal(RArray<RTrace<UFGFactoryConnectionComponent>>, connectors, "Connectors", "The factory connectors this actor has.");
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -836,7 +848,7 @@ BeginFunc(getFactoryConnectors, "Get Factory Connectors", "Returns a list of fac
 	connectors = Output;
 } EndFunc()
 BeginFunc(getPipeConnectors, "Get Pipe Connectors", "Returns a list of pipe (fluid & hyper) connectors this actor might have.") {
-	OutVal(0, RArray<RTrace<UFGPipeConnectionComponentBase>>, connectors, "Connectors", "The pipe connectors this actor has.");
+	OutVal(RArray<RTrace<UFGPipeConnectionComponentBase>>, connectors, "Connectors", "The pipe connectors this actor has.");
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -852,7 +864,7 @@ BeginFunc(getPipeConnectors, "Get Pipe Connectors", "Returns a list of pipe (flu
 	connectors = Output;
 } EndFunc()
 BeginFunc(getInventories, "Get Inventories", "Returns a list of inventories this actor might have.") {
-	OutVal(0, RArray<RTrace<UFGInventoryComponent>>, inventories, "Inventories", "The inventories this actor has.");
+	OutVal(RArray<RTrace<UFGInventoryComponent>>, inventories, "Inventories", "The inventories this actor has.");
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -865,7 +877,7 @@ BeginFunc(getInventories, "Get Inventories", "Returns a list of inventories this
 	inventories = Output;
 } EndFunc()
 BeginFunc(getNetworkConnectors, "Get Network Connectors", "Returns the name of network connectors this actor might have.") {
-	OutVal(0, RArray<RTrace<UFINNetworkConnectionComponent>>, connectors, "Connectors", "The factory connectors this actor has.")
+	OutVal(RArray<RTrace<UFINNetworkConnectionComponent>>, connectors, "Connectors", "The factory connectors this actor has.")
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -878,8 +890,8 @@ BeginFunc(getNetworkConnectors, "Get Network Connectors", "Returns the name of n
 	connectors = Output;
 } EndFunc()
 BeginFunc(getComponents, "Get Components", "Returns the components that make-up this actor.") {
-	InVal(0, RClass<UActorComponent>, componentType, "Component Type", "The class will be used as filter.")
-	OutVal(1, RArray<RTrace<UActorComponent>>, components, "Components", "The components of this actor.")
+	InVal(RClass<UActorComponent>, componentType, "Component Type", "The class will be used as filter.")
+	OutVal(RArray<RTrace<UActorComponent>>, components, "Components", "The components of this actor.")
 	Body()
 	FINArray Output;
 	const TSet<UActorComponent*>& Components = self->GetComponents();
@@ -949,9 +961,9 @@ BeginFunc(sort, "Sort", "Sorts the whole inventory. (like the middle mouse click
 	if (!self->IsLocked() && self->GetCanBeRearranged()) self->SortInventory();
 } EndFunc()
 BeginFunc(swapStacks, "Swap Stacks", "Swaps two given stacks inside the inventory.", 1) {
-	InVal(0, RInt, index1, "Index 1", "The index of the first stack in the inventory.")
-	InVal(1, RInt, index2, "Index 2", "The index of the second stack in the inventory.")
-	OutVal(2, RBool, successful, "Successful", "True if the swap was successful.")
+	InVal(RInt, index1, "Index 1", "The index of the first stack in the inventory.")
+	InVal(RInt, index2, "Index 2", "The index of the second stack in the inventory.")
+	OutVal(RBool, successful, "Successful", "True if the swap was successful.")
 	Body()
 	UFINLogLibrary::Log(FIN_Log_Verbosity_Warning, TEXT("It is currently Unsafe/Buggy to call swapStacks!"));
 	successful = UFGInventoryLibrary::MoveInventoryItem(self, index1, self, index2);
@@ -983,12 +995,12 @@ BeginProp(RInt, maxConnections, "Max Connections", "The maximum amount of connec
 	Return (int64)self->GetMaxNumConnections();
 } EndProp()
 BeginFunc(getPower, "Get Power", "Returns the power info component of this power connection.") {
-	OutVal(0, RTrace<UFGPowerInfoComponent>, power, "Power", "The power info compoent this power connection uses.")
+	OutVal(RTrace<UFGPowerInfoComponent>, power, "Power", "The power info compoent this power connection uses.")
 	Body()
 	power = Ctx.GetTrace() / self->GetPowerInfo();
 } EndFunc();
 BeginFunc(getCircuit, "Get Circuit", "Returns the power circuit to which this connection component is attached to.") {
-	OutVal(0, RTrace<UFGPowerCircuit>, circuit, "Circuit", "The Power Circuit this connection component is attached to.")
+	OutVal(RTrace<UFGPowerCircuit>, circuit, "Circuit", "The Power Circuit this connection component is attached to.")
 	Body()
 	circuit = Ctx.GetTrace() / self->GetPowerCircuit();
 } EndFunc()
@@ -1014,7 +1026,7 @@ BeginProp(RBool, hasPower, "Has Power", "True if the connection has satisfied po
 	Return self->HasPower();
 } EndProp();
 BeginFunc(getCircuit, "Get Circuit", "Returns the power circuit this info component is part of.") {
-	OutVal(0, RTrace<UFGPowerCircuit>, circuit, "Circuit", "The Power Circuit this info component is attached to.")
+	OutVal(RTrace<UFGPowerCircuit>, circuit, "Circuit", "The Power Circuit this info component is attached to.")
 	Body()
 	circuit = Ctx.GetTrace() / self->GetPowerCircuit();
 }
@@ -1123,7 +1135,7 @@ BeginProp(RBool, isSwitchOn, "Is Switch On", "True if the two circuits are conne
 	Return self->IsSwitchOn();
 } EndProp()
 BeginFunc(setIsSwitchOn, "Set Is Switch On", "Changes the circuit switch state.", 0) {
-	InVal(0, RBool, state, "State", "The new switch state.")
+	InVal(RBool, state, "State", "The new switch state.")
 	Body()
 	self->SetSwitchOn(state);
 } EndFunc()
@@ -1140,7 +1152,7 @@ EndClass()
 BeginClass(UFGFactoryConnectionComponent, "FactoryConnection", "Factory Connection", "A actor component that is a connection point to which a conveyor or pipe can get attached to.")
 Hook(UFINFactoryConnectorHook)
 BeginSignal(ItemTransfer, "Item Transfer", "Triggers when the factory connection component transfers an item.")
-	SignalParam(0, RStruct<FInventoryItem>, item, "Item", "The transfered item")
+	SignalParam(RStruct<FInventoryItem>, item, "Item", "The transfered item")
 EndSignal()
 BeginProp(RInt, type, "Type", "Returns the type of the connection. 0 = Conveyor, 1 = Pipe") {
 	Return (int64)self->GetConnector();
@@ -1165,18 +1177,18 @@ BeginProp(RInt, unblockedTransfers, "Unblocked Transfers", "The count of transfe
 	Return AFINComputerSubsystem::GetComputerSubsystem(self)->GetFactoryConnectorUnblockedTransfers(self);
 } EndProp()
 BeginFunc(addUnblockedTransfers, "Add Unblocked Transfers", "Adds the given count to the unblocked transfers counter. The resulting value gets clamped to >= 0. Negative values allow to decrease the counter manually. The returning int is the now set count.") {
-	InVal(0, RInt, unblockedTransfers, "Unblocked Transfers", "The count of unblocked transfers to add.")
-	OutVal(1, RInt, newUnblockedTransfers, "New Unblocked Transfers", "The new count of unblocked transfers.")
+	InVal(RInt, unblockedTransfers, "Unblocked Transfers", "The count of unblocked transfers to add.")
+	OutVal(RInt, newUnblockedTransfers, "New Unblocked Transfers", "The new count of unblocked transfers.")
 	Body()
 	newUnblockedTransfers = (FINInt) AFINComputerSubsystem::GetComputerSubsystem(self)->AddFactoryConnectorUnblockedTransfers(self, unblockedTransfers);
 } EndFunc()
 BeginFunc(getInventory, "Get Inventory", "Returns the internal inventory of the connection component.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The internal inventory of the connection component.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The internal inventory of the connection component.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetInventory();
 } EndFunc()
 BeginFunc(getConnected, "Get Connected", "Returns the connected factory connection component.") {
-	OutVal(0, RTrace<UFGFactoryConnectionComponent>, connected, "Connected", "The connected factory connection component.")
+	OutVal(RTrace<UFGFactoryConnectionComponent>, connected, "Connected", "The connected factory connection component.")
 	Body()
 	connected = Ctx.GetTrace() / self->GetConnection();
 } EndFunc()
@@ -1185,7 +1197,7 @@ EndClass()
 BeginClass(AFGPipeHyperStart, "PipeHyperStart", "Pipe Hyper Start", "A actor that is a hypertube entrance buildable")
 Hook(UFINPipeHyperStartHook)
 BeginSignal(PlayerEntered, "Player Entered", "Triggers when a players enters into this hypertube entrance.")
-	SignalParam(0, RBool, success, "Sucess", "True if the transfer was sucessfull")
+	SignalParam(RBool, success, "Sucess", "True if the transfer was sucessfull")
 EndSignal()
 BeginSignal(PlayerExited, "Player Exited", "Triggers when a players leaves through this hypertube entrance.")
 EndSignal()
@@ -1199,7 +1211,7 @@ BeginProp(RBool, isConnected, "Is Connected", "True if something is connected to
 	Return self->IsConnected();
 } EndProp()
 BeginFunc(getConnection, "Get Connection", "Returns the connected pipe connection component.") {
-	OutVal(0, RTrace<UFGPipeConnectionComponentBase>, connected, "Connected", "The connected pipe connection component.")
+	OutVal(RTrace<UFGPipeConnectionComponentBase>, connected, "Connected", "The connected pipe connection component.")
 	Body()
 	connected = Ctx.GetTrace() / self->GetConnection();
 } EndFunc()
@@ -1232,12 +1244,12 @@ BeginProp(RInt, networkID, "Get Network ID", "Returns the network ID of the pipe
 	Return (int64)self->GetPipeNetworkID();
 } EndProp();
 BeginFunc(getFluidDescriptor, "Get Fluid Descriptor", "?") {  /* TODO: Write DOC when figured out exactly what it does */
-	OutVal(0, RTrace<UFGItemDescriptor>, fluidDescriptor, "Fluid Descriptor", "?")   /* TODO: Write DOC */
+	OutVal(RTrace<UFGItemDescriptor>, fluidDescriptor, "Fluid Descriptor", "?")   /* TODO: Write DOC */
 	Body()
 	fluidDescriptor = Ctx.GetTrace() / self->GetFluidDescriptor();
 } EndFunc()
 /*BeginFunc(getFluidIntegrant, "Get Fluid Integrant", "?") {  
-	OutVal(0, RObject<IFGFluidIntegrantInterface>, fluidIntegrant, "Fluid Descriptor", "?")
+	OutVal(RObject<IFGFluidIntegrantInterface>, fluidIntegrant, "Fluid Descriptor", "?")
     Body()
     fluidIntegrant = Ctx.GetTrace() / self->GetFluidIntegrant();
 } EndFunc()*/
@@ -1252,7 +1264,7 @@ EndClass()
 BeginClass(AFGBuildable, "Buildable", "Buildable", "The base class of all buildables.")
 Hook(UFINBuildableHook)
 BeginSignal(ProductionChanged, "Production Changed", "Triggers when the production state of the buildable changes.")
-	SignalParam(0, RInt, state, "State", "The new production state.")
+	SignalParam(RInt, state, "State", "The new production state.")
 EndSignal()
 BeginProp(RInt, numPowerConnections, "Num Power Connection", "The count of available power connections this building has.") {
 	Return (FINInt)self->GetNumPowerConnections();
@@ -1294,18 +1306,18 @@ BeginProp(RFloat, potential, "Potential", "The potential this factory is current
 } PropSet() {
 	float min = self->GetMinPotential();
 	float max = self->GetMaxPossiblePotential();
-	self->SetPendingPotential(FMath::Clamp((float)Val, self->GetMinPotential(), self->GetMaxPossiblePotential()));
+	self->SetPendingPotential(FMath::Clamp((float)Val, min, max));
 } EndProp()
 EndClass()
 
 BeginClass(AFGBuildableManufacturer, "Manufacturer", "Manufacturer", "The base class of every machine that uses a recipe to produce something automatically.")
 BeginFunc(getRecipe, "Get Recipe", "Returns the currently set recipe of the manufacturer.") {
-	OutVal(0, RClass<UFGRecipe>, recipe, "Recipe", "The currently set recipe.")
+	OutVal(RClass<UFGRecipe>, recipe, "Recipe", "The currently set recipe.")
 	Body()
 	recipe = (UClass*)self->GetCurrentRecipe();
 } EndFunc()
 BeginFunc(getRecipes, "Get Recipes", "Returns the list of recipes this manufacturer can get set to and process.") {
-	OutVal(0, RArray<RClass<UFGRecipe>>, recipes, "Recipes", "The list of avalible recipes.")
+	OutVal(RArray<RClass<UFGRecipe>>, recipes, "Recipes", "The list of avalible recipes.")
 	Body()
 	TArray<FINAny> OutRecipes;
 	TArray<TSubclassOf<UFGRecipe>> Recipes;
@@ -1316,8 +1328,8 @@ BeginFunc(getRecipes, "Get Recipes", "Returns the list of recipes this manufactu
 	recipes = OutRecipes;
 } EndFunc()
 BeginFunc(setRecipe, "Set Recipe", "Sets the currently producing recipe of this manufacturer.", 0) {
-	InVal(0, RClass<UFGRecipe>, recipe, "Recipe", "The recipe this manufacturer should produce.")
-	OutVal(1, RBool, gotSet, "Got Set", "True if the current recipe got successfully set to the new recipe.")
+	InVal(RClass<UFGRecipe>, recipe, "Recipe", "The recipe this manufacturer should produce.")
+	OutVal(RBool, gotSet, "Got Set", "True if the current recipe got successfully set to the new recipe.")
 	Body()
 	TArray<TSubclassOf<UFGRecipe>> recipes;
 	self->GetAvailableRecipes(recipes);
@@ -1333,12 +1345,12 @@ BeginFunc(setRecipe, "Set Recipe", "Sets the currently producing recipe of this 
 	}
 } EndFunc()
 BeginFunc(getInputInv, "Get Input Inventory", "Returns the input inventory of this manufacturer.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The input inventory of this manufacturer")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The input inventory of this manufacturer")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetInputInventory();
 } EndFunc()
 BeginFunc(getOutputInv, "Get Output Inventory", "Returns the output inventory of this manufacturer.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The output inventory of this manufacturer.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The output inventory of this manufacturer.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetOutputInventory();
 } EndFunc()
@@ -1346,12 +1358,12 @@ EndClass()
 
 BeginClass(AFGBuildableDoor, "Door", "Door", "The base class of all doors.")
 BeginFunc(getConfiguration, "Get Configuration", "Returns the Door Mode/Configuration.\n0 = Automatic\n1 = Always Closed\n2 = Always Open") {
-	OutVal(0, RInt, configuration, "Configuration", "The current door mode/configuration.")
+	OutVal(RInt, configuration, "Configuration", "The current door mode/configuration.")
 	Body()
 	configuration = (FINInt)self->GetmDoorConfiguration();
 } EndFunc()
 BeginFunc(setConfiguration, "Set Configuration", "Sets the Door Mode/Configuration, only some modes are allowed, if the mod you try to set is invalid, nothing changes.\n0 = Automatic\n1 = Always Closed\n2 = Always Open", 0) {
-	InVal(0, RInt, configuration, "Configuration", "The new configuration for the door.")
+	InVal(RInt, configuration, "Configuration", "The new configuration for the door.")
 	Body()
 	EDoorConfiguration Config = (EDoorConfiguration)FMath::Clamp(configuration, 0, 2);
 	self->SetmDoorConfiguration(Config);
@@ -1375,24 +1387,24 @@ EndClass()
 
 BeginClass(AFGWheeledVehicle, "WheeledVehicle", "Wheeled Vehicle", "The base class for all vehicles that used wheels for movement.")
 BeginFunc(getFuelInv, "Get Fuel Inventory", "Returns the inventory that contains the fuel of the vehicle.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The fuel inventory of the vehicle.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The fuel inventory of the vehicle.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetFuelInventory();
 } EndFunc()
 BeginFunc(getStorageInv, "Get Storage Inventory", "Returns the inventory that contains the storage of the vehicle.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The storage inventory of the vehicle.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The storage inventory of the vehicle.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetStorageInventory();
 } EndFunc()
 BeginFunc(isValidFuel, "Is Valid Fuel", "Allows to check if the given item type is a valid fuel for this vehicle.") {
-	InVal(0, RClass<UFGItemDescriptor>, item, "Item", "The item type you want to check.")
-	OutVal(1, RBool, isValid, "Is Valid", "True if the given item type is a valid fuel for this vehicle.")
+	InVal(RClass<UFGItemDescriptor>, item, "Item", "The item type you want to check.")
+	OutVal(RBool, isValid, "Is Valid", "True if the given item type is a valid fuel for this vehicle.")
 	Body()
 	isValid = self->IsValidFuel(item);
 } EndFunc()
 
 BeginFunc(getCurrentTarget, "Get Current Target", "Returns the index of the target that the vehicle tries to move to right now.") {
-	OutVal(0, RInt, index, "Index", "The index of the current target.")
+	OutVal(RInt, index, "Index", "The index of the current target.")
 	Body()
 	AFGDrivingTargetList* List = self->GetTargetList();
 	index = (int64)List->FindTargetIndex(List->mCurrentTarget);
@@ -1402,7 +1414,7 @@ BeginFunc(nextTarget, "Next Target", "Sets the current target to the next target
 	self->PickNextTarget();
 } EndFunc()
 BeginFunc(setCurrentTarget, "Set Current Target", "Sets the target with the given index as the target this vehicle tries to move to right now.") {
-	InVal(0, RInt, index, "Index", "The index of the target this vehicle should move to now.")
+	InVal(RInt, index, "Index", "The index of the target this vehicle should move to now.")
 	Body()
 	AFGDrivingTargetList* List = self->GetTargetList();
 	AFGTargetPoint* Target = List->FindTargetByIndex(index);
@@ -1410,7 +1422,7 @@ BeginFunc(setCurrentTarget, "Set Current Target", "Sets the target with the give
 	List->mCurrentTarget = Target;
 } EndFunc()
 BeginFunc(getTargetList, "Get Target List", "Returns the list of targets/path waypoints.") {
-	OutVal(0, RTrace<AFGDrivingTargetList>, targetList, "Target List", "The list of targets/path-waypoints.")
+	OutVal(RTrace<AFGDrivingTargetList>, targetList, "Target List", "The list of targets/path-waypoints.")
 	Body()
 	targetList = Ctx.GetTrace() / self->GetTargetList();
 } EndFunc()
@@ -1427,15 +1439,15 @@ EndClass()
 
 BeginClass(AFGDrivingTargetList, "TargetList", "Target List", "The list of targets/path-waypoints a autonomous vehicle can drive")
 BeginFunc(getTarget, "Get Target", "Returns the target struct at with the given index in the target list.") {
-	InVal(0, RInt, index, "Index", "The index of the target you want to get the struct from.")
-	OutVal(0, RStruct<FFINTargetPoint>, target, "Target", "The TargetPoint-Struct with the given index in the target list.")
+	InVal(RInt, index, "Index", "The index of the target you want to get the struct from.")
+	OutVal(RStruct<FFINTargetPoint>, target, "Target", "The TargetPoint-Struct with the given index in the target list.")
 	Body()
 	AFGTargetPoint* Target = self->FindTargetByIndex(index);
 	if (!Target) throw FFINException("index out of range");
 	target = (FINAny)FFINTargetPoint(Target);
 } EndFunc()
 BeginFunc(removeTarget, "Remove Target", "Removes the target with the given index from the target list.") {
-	InVal(0, RInt, index, "Index", "The index of the target point you want to remove from the target list.")
+	InVal(RInt, index, "Index", "The index of the target point you want to remove from the target list.")
 	Body()
 	AFGTargetPoint* Target = self->FindTargetByIndex(index);
 	if (!Target) throw FFINException( "index out of range");
@@ -1443,15 +1455,15 @@ BeginFunc(removeTarget, "Remove Target", "Removes the target with the given inde
 	Target->Destroy();
 } EndFunc()
 BeginFunc(addTarget, "Add Target", "Adds the given target point struct at the end of the target list.") {
-	InVal(0, RStruct<FFINTargetPoint>, target, "Target", "The target point you want to add.")
+	InVal(RStruct<FFINTargetPoint>, target, "Target", "The target point you want to add.")
 	Body()
 	AFGTargetPoint* Target = target.ToWheeledTargetPoint(self);
 	if (!Target) throw FFINException("failed to create target");
 	self->InsertItem(Target, self->mLast);
 } EndFunc()
 BeginFunc(setTarget, "Set Target", "Allows to set the target at the given index to the given target point struct.") {
-	InVal(0, RInt, index, "Index", "The index of the target point you want to update with the given target point struct.")
-	InVal(1, RStruct<FFINTargetPoint>, target, "Target", "The new target point struct for the given index.")
+	InVal(RInt, index, "Index", "The index of the target point you want to update with the given target point struct.")
+	InVal(RStruct<FFINTargetPoint>, target, "Target", "The new target point struct for the given index.")
 	Body()
 	AFGTargetPoint* Target = self->FindTargetByIndex(index);
 	if (!Target) throw FFINException("index out of range");
@@ -1461,7 +1473,7 @@ BeginFunc(setTarget, "Set Target", "Allows to set the target at the given index 
 	Target->SetWaitTime(target.Wait);
 } EndFunc()
 BeginFunc(getTargets, "Get Targets", "Returns a list of target point structs of all the targets in the target point list.") {
-	OutVal(0, RArray<RStruct<FFINTargetPoint>>, targets, "Targets", "A list of target point structs containing all the targets of the target point list.")
+	OutVal(RArray<RStruct<FFINTargetPoint>>, targets, "Targets", "A list of target point structs containing all the targets of the target point list.")
 	Body()
 	TArray<FINAny> Targets;
 	AFGTargetPoint* CurrentTarget = nullptr;
@@ -1474,7 +1486,7 @@ BeginFunc(getTargets, "Get Targets", "Returns a list of target point structs of 
 	targets = Targets;
 } EndFunc()
 BeginFunc(setTargets, "Set Targets", "Removes all targets from the target point list and adds the given array of target point structs to the empty target point list.", 0) {
-	InVal(0, RArray<RStruct<FFINTargetPoint>>, targets, "Targets", "A list of target point structs you want to place into the empty target point list.")
+	InVal(RArray<RStruct<FFINTargetPoint>>, targets, "Targets", "A list of target point structs you want to place into the empty target point list.")
 	Body()
 	int Count = self->GetTargetCount();
 	for (const FINAny& Target : targets) {
@@ -1488,14 +1500,14 @@ EndClass()
 
 BeginClass(AFGBuildableTrainPlatform, "TrainPlatform", "Train Platform", "The base class for all train station parts.")
 BeginFunc(getTrackGraph, "Get Track Graph", "Returns the track graph of which this platform is part of.") {
-	OutVal(0, RStruct<FFINTrackGraph>, graph, "Graph", "The track graph of which this platform is part of.")
+	OutVal(RStruct<FFINTrackGraph>, graph, "Graph", "The track graph of which this platform is part of.")
 	Body()
 	graph = (FINAny)FFINTrackGraph{Ctx.GetTrace(), self->GetTrackGraphID()};
 } EndFunc()
 BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this train platform is placed.") {
-	OutVal(0, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
-	OutVal(1, RFloat, offset, "Offset", "The offset of the track pos.")
-	OutVal(2, RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
+	OutVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
+	OutVal(RFloat, offset, "Offset", "The offset of the track pos.")
+	OutVal(RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
 	Body()
 	FRailroadTrackPosition pos = self->GetTrackPosition();
 	if (!pos.IsValid()) throw FFINException("Railroad track position of self is invalid");
@@ -1504,23 +1516,23 @@ BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this tra
 	forward = pos.Forward;
 } EndFunc()
 BeginFunc(getConnectedPlatform, "Get Connected Platform", "Returns the connected platform in the given direction.") {
-	InVal(0, RInt, direction, "Direction", "The direction in which you want to get the connected platform.")
-	OutVal(1, RTrace<AFGBuildableTrainPlatform>, platform, "Platform", "The platform connected to this platform in the given direction.")
+	InVal(RInt, direction, "Direction", "The direction in which you want to get the connected platform.")
+	OutVal(RTrace<AFGBuildableTrainPlatform>, platform, "Platform", "The platform connected to this platform in the given direction.")
 	Body()
 	platform = Ctx.GetTrace() / self->GetConnectedPlatformInDirectionOf(direction);
 } EndFunc()
 BeginFunc(getDockedVehicle, "Get Docked Vehicle", "Returns the currently docked vehicle.") {
-	OutVal(0, RTrace<AFGVehicle>, vehicle, "Vehicle", "The currently docked vehicle")
+	OutVal(RTrace<AFGVehicle>, vehicle, "Vehicle", "The currently docked vehicle")
 	Body()
 	vehicle = Ctx.GetTrace() / FReflectionHelper::GetPropertyValue<FObjectProperty>(self, TEXT("mDockedRailroadVehicle"));
 } EndFunc()
 BeginFunc(getMaster, "Get Master", "Returns the master platform of this train station.") {
-	OutVal(0, RTrace<AFGRailroadVehicle>, master, "Master", "The master platform of this train station.")
+	OutVal(RTrace<AFGRailroadVehicle>, master, "Master", "The master platform of this train station.")
 	Body()
 	master = Ctx.GetTrace() / FReflectionHelper::GetPropertyValue<FObjectProperty>(self, TEXT("mStationDockingMaster"));
 } EndFunc()
 BeginFunc(getDockedLocomotive, "Get Docked Locomotive", "Returns the currently docked locomotive at the train station.") {
-	OutVal(0, RTrace<AFGLocomotive>, locomotive, "Locomotive", "The currently docked locomotive at the train station.")
+	OutVal(RTrace<AFGLocomotive>, locomotive, "Locomotive", "The currently docked locomotive at the train station.")
 	Body()
 	locomotive = Ctx.GetTrace() / FReflectionHelper::GetPropertyValue<FObjectProperty>(self, TEXT("mDockingLocomotive"));
 } EndFunc()
@@ -1535,9 +1547,9 @@ EndClass()
 BeginClass(AFGBuildableRailroadStation, "RailroadStation", "Railroad Station", "The train station master platform. This platform holds the name and manages docking of trains.")
 Hook(UFINRailroadStationHook)
 BeginSignal(StartDocking, "Start Docking", "Triggers when a train tries to dock onto the station.")
-	SignalParam(0, RBool, successful, "Successful", "True if the train successfully docked.")
-	SignalParam(1, RTrace<AFGLocomotive>, locomotive, "Locomotive", "The locomotive that tries to dock onto the station.")
-	SignalParam(2, RFloat, offset, "Offset", "The offset at witch the train tried to dock.")
+	SignalParam(RBool, successful, "Successful", "True if the train successfully docked.")
+	SignalParam(RTrace<AFGLocomotive>, locomotive, "Locomotive", "The locomotive that tries to dock onto the station.")
+	SignalParam(RFloat, offset, "Offset", "The offset at witch the train tried to dock.")
 EndSignal()
 BeginSignal(FinishDocking, "Finish Docking", "Triggers when a train finished the docking procedure and is ready to depart the station.")
 EndSignal()
@@ -1581,31 +1593,31 @@ EndClass()
 
 BeginClass(AFGRailroadVehicle, "RailroadVehicle", "Railroad Vehicle", "The base class for any vehicle that drives on train tracks.")
 BeginFunc(getTrain, "Get Train", "Returns the train of which this vehicle is part of.") {
-	OutVal(0, RTrace<AFGTrain>, train, "Train", "The train of which this vehicle is part of")
+	OutVal(RTrace<AFGTrain>, train, "Train", "The train of which this vehicle is part of")
 	Body()
 	train = Ctx.GetTrace() / Cast<UObject>(self->GetTrain());
 } EndFunc()
 BeginFunc(isCoupled, "Is Coupled", "Allows to check if the given coupler is coupled to another car.") {
-	InVal(0, RInt, coupler, "Coupler", "The Coupler you want to check. 0 = Front, 1 = Back")
-	OutVal(1, RBool, coupled, "Coupled", "True of the give coupler is coupled to another car.")
+	InVal(RInt, coupler, "Coupler", "The Coupler you want to check. 0 = Front, 1 = Back")
+	OutVal(RBool, coupled, "Coupled", "True of the give coupler is coupled to another car.")
 	Body()
 	coupled = self->IsCoupledAt(static_cast<ERailroadVehicleCoupler>(coupler));
 } EndFunc()
 BeginFunc(getCoupled, "Get Coupled", "Allows to get the coupled vehicle at the given coupler.") {
-	InVal(0, RInt, coupler, "Coupler", "The Coupler you want to get the car from. 0 = Front, 1 = Back")
-	OutVal(1, RTrace<AFGRailroadVehicle>, coupled, "Coupled", "The coupled car of the given coupler is coupled to another car.")
+	InVal(RInt, coupler, "Coupler", "The Coupler you want to get the car from. 0 = Front, 1 = Back")
+	OutVal(RTrace<AFGRailroadVehicle>, coupled, "Coupled", "The coupled car of the given coupler is coupled to another car.")
 	Body()
 	coupled = Ctx.GetTrace() / self->GetCoupledVehicleAt(static_cast<ERailroadVehicleCoupler>(coupler));
 } EndFunc()
 BeginFunc(getTrackGraph, "Get Track Graph", "Returns the track graph of which this vehicle is part of.") {
-	OutVal(0, RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this vehicle is part of.")
+	OutVal(RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this vehicle is part of.")
 	Body()
 	track = (FINAny)FFINTrackGraph{Ctx.GetTrace(), self->GetTrackGraphID()};
 } EndFunc()
 BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this vehicle is.") {
-	OutVal(0, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
-    OutVal(1, RFloat, offset, "Offset", "The offset of the track pos.")
-    OutVal(2, RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
+	OutVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
+    OutVal(RFloat, offset, "Offset", "The offset of the track pos.")
+    OutVal(RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
     Body()
     FRailroadTrackPosition pos = self->GetTrackPosition();
 	if (!pos.IsValid()) throw FFINException("Railroad Track Position of self is invalid");
@@ -1614,7 +1626,7 @@ BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this veh
 	forward = pos.Forward;
 } EndFunc()
 BeginFunc(getMovement, "Get Movement", "Returns the vehicle movement of this vehicle.") {
-	OutVal(0, RTrace<UFGRailroadVehicleMovementComponent>, movement, "Movement", "The movement of this vehicle.")
+	OutVal(RTrace<UFGRailroadVehicleMovementComponent>, movement, "Movement", "The movement of this vehicle.")
 	Body()
 	movement = Ctx.GetTrace() / self->GetRailroadVehicleMovementComponent();
 } EndFunc()
@@ -1631,15 +1643,15 @@ EndClass()
 
 BeginClass(UFGRailroadVehicleMovementComponent, "RailroadVehicleMovement", "Railroad Vehicle Movement", "This actor component contains all the infomation about the movement of a railroad vehicle.")
 BeginFunc(getVehicle, "Get Vehicle", "Returns the vehicle this movement component holds the movement information of.") {
-	OutVal(0, RTrace<AFGRailroadVehicle>, vehicle, "Vehicle", "The vehicle this movement component holds the movement information of.")
+	OutVal(RTrace<AFGRailroadVehicle>, vehicle, "Vehicle", "The vehicle this movement component holds the movement information of.")
 	Body()
 	vehicle = Ctx.GetTrace() / self->GetOwningRailroadVehicle();
 } EndFunc()
 BeginFunc(getWheelsetRotation, "Get Wheelset Rotation", "Returns the current rotation of the given wheelset.") {
-	InVal(0, RInt, wheelset, "Wheelset", "The index of the wheelset you want to get the rotation of.")
-	OutVal(1, RFloat, x, "X", "The wheelset's rotation X component.")
-	OutVal(2, RFloat, y, "Y", "The wheelset's rotation Y component.")
-	OutVal(3, RFloat, z, "Z", "The wheelset's rotation Z component.")
+	InVal(RInt, wheelset, "Wheelset", "The index of the wheelset you want to get the rotation of.")
+	OutVal(RFloat, x, "X", "The wheelset's rotation X component.")
+	OutVal(RFloat, y, "Y", "The wheelset's rotation Y component.")
+	OutVal(RFloat, z, "Z", "The wheelset's rotation Z component.")
 	Body()
 	FVector rot = self->GetWheelsetRotation(wheelset);
 	x = rot.X;
@@ -1647,17 +1659,17 @@ BeginFunc(getWheelsetRotation, "Get Wheelset Rotation", "Returns the current rot
 	z = rot.Z;
 } EndFunc()
 BeginFunc(getWheelsetOffset, "Get Wheelset Offset", "Returns the offset of the wheelset with the given index from the start of the vehicle.") {
-	InVal(0, RInt, wheelset, "Wheelset", "The index of the wheelset you want to get the offset of.")
-	OutVal(1, RFloat, offset, "Offset", "The offset of the wheelset.")
+	InVal(RInt, wheelset, "Wheelset", "The index of the wheelset you want to get the offset of.")
+	OutVal(RFloat, offset, "Offset", "The offset of the wheelset.")
 	Body()
 	offset = self->GetWheelsetOffset(wheelset);
 } EndFunc()
 BeginFunc(getCouplerRotationAndExtention, "Get Coupler Rotation And Extention", "Returns the normal vector and the extention of the coupler with the given index.") {
-	InVal(0, RInt, coupler, "Coupler", "The index of which you want to get the normal and extention of.")
-	OutVal(1, RFloat, x, "X", "The X component of the coupler normal.")
-	OutVal(2, RFloat, y, "Y", "The Y component of the coupler normal.")
-	OutVal(3, RFloat, z, "Z", "The Z component of the coupler normal.")
-	OutVal(4, RFloat, extention, "Extention", "The extention of the coupler.")
+	InVal(RInt, coupler, "Coupler", "The index of which you want to get the normal and extention of.")
+	OutVal(RFloat, x, "X", "The X component of the coupler normal.")
+	OutVal(RFloat, y, "Y", "The Y component of the coupler normal.")
+	OutVal(RFloat, z, "Z", "The Z component of the coupler normal.")
+	OutVal(RFloat, extention, "Extention", "The extention of the coupler.")
 	Body()
 	float extension;
 	FVector rotation = self->GetCouplerRotationAndExtention(coupler, extension);
@@ -1753,50 +1765,50 @@ EndClass()
 BeginClass(AFGTrain, "Train", "Train", "This class holds information and references about a trains (a collection of multiple railroad vehicles) and its timetable f.e.")
 Hook(UFINTrainHook)
 BeginSignal(SelfDrvingUpdate, "Self Drving Update", "Triggers when the self driving mode of the train changes")
-	SignalParam(0, RBool, enabled, "Enabled", "True if the train is now self driving.")
+	SignalParam(RBool, enabled, "Enabled", "True if the train is now self driving.")
 EndSignal()
 BeginFunc(getName, "Get Name", "Returns the name of this train.") {
-	OutVal(0, RString, name, "Name", "The name of this train.")
+	OutVal(RString, name, "Name", "The name of this train.")
 	Body()
 	name = self->GetTrainName().ToString();
 } EndFunc()
 BeginFunc(setName, "Set Name", "Allows to set the name of this train.") {
-	InVal(0, RString, name, "Name", "The new name of this trian.")
+	InVal(RString, name, "Name", "The new name of this trian.")
 	Body()
 	self->SetTrainName(FText::FromString(name));
 } EndFunc()
 BeginFunc(getTrackGraph, "Get Track Graph", "Returns the track graph of which this train is part of.") {
-	OutVal(0, RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this train is part of.")
+	OutVal(RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this train is part of.")
 	Body()
 	track = (FINAny) FFINTrackGraph{Ctx.GetTrace(), self->GetTrackGraphID()};
 } EndFunc()
 BeginFunc(setSelfDriving, "Set Self Driving", "Allows to set if the train should be self driving or not.", 0) {
-	InVal(0, RBool, selfDriving, "Self Driving", "True if the train should be self driving.")
+	InVal(RBool, selfDriving, "Self Driving", "True if the train should be self driving.")
 	Body()
 	self->SetSelfDrivingEnabled(selfDriving);
 } EndFunc()
 BeginFunc(getMaster, "Get Master", "Returns the master locomotive that is part of this train.") {
-	OutVal(0, RTrace<AFGLocomotive>, master, "Master", "The master locomotive of this train.")
+	OutVal(RTrace<AFGLocomotive>, master, "Master", "The master locomotive of this train.")
 	Body()
 	master = Ctx.GetTrace() / self->GetMultipleUnitMaster();
 } EndFunc()
 BeginFunc(getTimeTable, "Get Time Table", "Returns the timetable of this train.") {
-	OutVal(0, RTrace<AFGRailroadTimeTable>, timeTable, "Time Table", "The timetable of this train.")
+	OutVal(RTrace<AFGRailroadTimeTable>, timeTable, "Time Table", "The timetable of this train.")
 	Body()
 	timeTable = Ctx.GetTrace() / self->GetTimeTable();
 } EndFunc()
 BeginFunc(newTimeTable, "New Time Table", "Creates and returns a new timetable for this train.", 0) {
-	OutVal(0, RTrace<AFGRailroadTimeTable>, timeTable, "Time Table", "The new timetable for this train.")
+	OutVal(RTrace<AFGRailroadTimeTable>, timeTable, "Time Table", "The new timetable for this train.")
 	Body()
 	timeTable = Ctx.GetTrace() / self->NewTimeTable();
 } EndFunc()
 BeginFunc(getFirst, "Get First", "Returns the first railroad vehicle that is part of this train.") {
-	OutVal(0, RTrace<AFGRailroadVehicle>, first, "First", "The first railroad vehicle that is part of this train.")
+	OutVal(RTrace<AFGRailroadVehicle>, first, "First", "The first railroad vehicle that is part of this train.")
 	Body()
 	first = Ctx.GetTrace() / self->GetFirstVehicle();
 } EndFunc()
 BeginFunc(getLast, "Get Last", "Returns the last railroad vehicle that is part of this train.") {
-	OutVal(0, RTrace<AFGRailroadVehicle>, last, "Last", "The last railroad vehicle that is part of this train.")
+	OutVal(RTrace<AFGRailroadVehicle>, last, "Last", "The last railroad vehicle that is part of this train.")
 	Body()
 	last = Ctx.GetTrace() / self->GetLastVehicle();
 } EndFunc()
@@ -1805,7 +1817,7 @@ BeginFunc(dock, "Dock", "Trys to dock the train to the station it is currently a
 	self->Dock();
 } EndFunc()
 BeginFunc(getVehicles, "Get Vehicles", "Returns a list of all the vehicles this train has.") {
-	OutVal(0, RArray<RTrace<AFGRailroadVehicle>>, vehicles, "Vehicles", "A list of all the vehicles this train has.")
+	OutVal(RArray<RTrace<AFGRailroadVehicle>>, vehicles, "Vehicles", "A list of all the vehicles this train has.")
 	Body()
 	TArray<FINAny> Vehicles;
 	for (AFGRailroadVehicle* vehicle : self->mSimulationData.SimulatedVehicles) {
@@ -1835,10 +1847,10 @@ EndClass()
 
 BeginClass(AFGRailroadTimeTable, "TimeTable", "Time Table", "Contains the time table information of train.")
 BeginFunc(addStop, "Add Stop", "Adds a stop to the time table.") {
-	InVal(0, RInt, index, "Index", "The index at which the stop should get added.")
-	InVal(1, RTrace<AFGBuildableRailroadStation>, station, "Station", "The railroad station at which the stop should happen.")
-	InVal(2, RStruct<FTrainDockingRuleSet>, ruleSet, "Rule Set", "The docking rule set that descibes when the train will depart from the station.")
-	OutVal(3, RBool, added, "Added", "True if the stop got sucessfully added to the time table.")
+	InVal(RInt, index, "Index", "The index at which the stop should get added.")
+	InVal(RTrace<AFGBuildableRailroadStation>, station, "Station", "The railroad station at which the stop should happen.")
+	InVal(RStruct<FTrainDockingRuleSet>, ruleSet, "Rule Set", "The docking rule set that descibes when the train will depart from the station.")
+	OutVal(RBool, added, "Added", "True if the stop got sucessfully added to the time table.")
 	Body()
 	FTimeTableStop stop;
 	stop.Station = Cast<AFGBuildableRailroadStation>(station.Get())->GetStationIdentifier();
@@ -1846,12 +1858,12 @@ BeginFunc(addStop, "Add Stop", "Adds a stop to the time table.") {
 	added = self->AddStop(index, stop);
 } EndFunc()
 BeginFunc(removeStop, "Remove Stop", "Removes the stop with the given index from the time table.") {
-	InVal(0, RInt, index, "Index", "The index at which the stop should get added.")
+	InVal(RInt, index, "Index", "The index at which the stop should get added.")
 	Body()
 	self->RemoveStop(index);
 } EndFunc()
 BeginFunc(getStops, "Get Stops", "Returns a list of all the stops this time table has") {
-	OutVal(0, RArray<RStruct<FFINTimeTableStop>>, stops, "Stops", "A list of time table stops this time table has.")
+	OutVal(RArray<RStruct<FFINTimeTableStop>>, stops, "Stops", "A list of time table stops this time table has.")
 	Body()
 	TArray<FINAny> Output;
 	TArray<FTimeTableStop> Stops;
@@ -1862,8 +1874,8 @@ BeginFunc(getStops, "Get Stops", "Returns a list of all the stops this time tabl
 	stops = Output;
 } EndFunc()
 BeginFunc(setStops, "Set Stops", "Allows to empty and fill the stops of this time table with the given list of new stops.") {
-	InVal(0, RArray<RStruct<FFINTimeTableStop>>, stops, "Stops", "The new time table stops.")
-	OutVal(1, RBool, gotSet, "Got Set", "True if the stops got sucessfully set.")
+	InVal(RArray<RStruct<FFINTimeTableStop>>, stops, "Stops", "The new time table stops.")
+	OutVal(RBool, gotSet, "Got Set", "True if the stops got sucessfully set.")
 	Body()
 	TArray<FTimeTableStop> Stops;
 	for (const FINAny& Any : stops) {
@@ -1872,14 +1884,14 @@ BeginFunc(setStops, "Set Stops", "Allows to empty and fill the stops of this tim
 	gotSet = self->SetStops(Stops);
 } EndFunc()
 BeginFunc(isValidStop, "Is Valid Stop", "Allows to check if the given stop index is valid.") {
-	InVal(0, RInt, index, "Index", "The stop index you want to check its validity.")
-	OutVal(1, RBool, valid, "Valid", "True if the stop index is valid.")
+	InVal(RInt, index, "Index", "The stop index you want to check its validity.")
+	OutVal(RBool, valid, "Valid", "True if the stop index is valid.")
 	Body()
 	valid = self->IsValidStop(index);
 } EndFunc()
 BeginFunc(getStop, "Get Stop", "Returns the stop at the given index.") {
-	InVal(0, RInt, index, "Index", "The index of the stop you want to get.")
-	OutVal(1, RStruct<FFINTimeTableStop>, stop, "Stop", "The time table stop at the given index.")
+	InVal(RInt, index, "Index", "The index of the stop you want to get.")
+	OutVal(RStruct<FFINTimeTableStop>, stop, "Stop", "The time table stop at the given index.")
 	Body()
 	FTimeTableStop Stop = self->GetStop(index);
 	if (IsValid(Stop.Station)) {
@@ -1889,9 +1901,9 @@ BeginFunc(getStop, "Get Stop", "Returns the stop at the given index.") {
 	}
 } EndFunc()
 BeginFunc(setStop, "Set Stop", "Allows to override a stop already in the time table.") {
-	InVal(0, RInt, index, "Index", "The index of the stop you want to override.")
-	InVal(1, RStruct<FFINTimeTableStop>, stop, "Stop", "The time table stop you want to override with.")
-	OutVal(2, RBool, success, "Success", "True if setting was successful, false if not, f.e. invalid index.")
+	InVal(RInt, index, "Index", "The index of the stop you want to override.")
+	InVal(RStruct<FFINTimeTableStop>, stop, "Stop", "The time table stop you want to override with.")
+	OutVal(RBool, success, "Success", "True if setting was successful, false if not, f.e. invalid index.")
 	Body()
 	TArray<FTimeTableStop> Stops;
 	self->GetStops(Stops);
@@ -1904,7 +1916,7 @@ BeginFunc(setStop, "Set Stop", "Allows to override a stop already in the time ta
 	}
 } EndFunc()
 BeginFunc(setCurrentStop, "Set Current Stop", "Sets the stop, to which the train trys to drive to right now.") {
-	InVal(0, RInt, index, "Index", "The index of the stop the train should drive to right now.")
+	InVal(RInt, index, "Index", "The index of the stop the train should drive to right now.")
 	Body()
 	self->SetCurrentStop(index);
 } EndFunc()
@@ -1913,7 +1925,7 @@ BeginFunc(incrementCurrentStop, "Increment Current Stop", "Sets the current stop
 	self->IncrementCurrentStop();
 } EndFunc()
 BeginFunc(getCurrentStop, "Get Current Stop", "Returns the index of the stop the train drives to right now.") {
-	OutVal(0, RInt, index, "Index", "The index of the stop the train tries to drive to right now.")
+	OutVal(RInt, index, "Index", "The index of the stop the train tries to drive to right now.")
     Body()
     index = (int64) self->GetCurrentStop();
 } EndFunc()
@@ -1925,16 +1937,16 @@ EndClass()
 BeginClass(AFGBuildableRailroadTrack, "RailroadTrack", "Railroad Track", "A peice of railroad track over which trains can drive.")
 Hook(UFINRailroadTrackHook)
 BeginSignal(VehicleEnter, "VehicleEnter", "Triggered when a vehicle enters the track.")
-	SignalParam(0, RTrace<AFGRailroadVehicle>, Vehicle, "Vehicle", "The vehicle that entered the track.")
+	SignalParam(RTrace<AFGRailroadVehicle>, Vehicle, "Vehicle", "The vehicle that entered the track.")
 EndSignal()
 BeginSignal(VehicleExit, "VehicleExit", "Triggered when a vehcile exists the track.")
-	SignalParam(0, RTrace<AFGRailroadVehicle>, Vehicle, "Vehicle", "The vehicle that exited the track.")
+	SignalParam(RTrace<AFGRailroadVehicle>, Vehicle, "Vehicle", "The vehicle that exited the track.")
 EndSignal()
 BeginFunc(getClosestTrackPosition, "Get Closeset Track Position", "Returns the closes track position from the given world position") {
-	InVal(0, RStruct<FVector>, worldPos, "World Pos", "The world position form which you want to get the closest track position.")
-	OutVal(1, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
-    OutVal(2, RFloat, offset, "Offset", "The offset of the track pos.")
-    OutVal(3, RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
+	InVal(RStruct<FVector>, worldPos, "World Pos", "The world position form which you want to get the closest track position.")
+	OutVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
+    OutVal(RFloat, offset, "Offset", "The offset of the track pos.")
+    OutVal(RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
     Body()
 	FRailroadTrackPosition pos = self->FindTrackPositionClosestToWorldLocation(worldPos);
 	if (!pos.IsValid()) throw FFINException("Railroad Track Position of self is invalid");
@@ -1943,11 +1955,11 @@ BeginFunc(getClosestTrackPosition, "Get Closeset Track Position", "Returns the c
 	forward = pos.Forward;
 } EndFunc()
 BeginFunc(getWorldLocAndRotAtPos, "Get World Location And Rotation At Position", "Returns the world location and world rotation of the track position from the given track position.") {
-	InVal(0, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
-    InVal(1, RFloat, offset, "Offset", "The offset of the track pos.")
-    InVal(2, RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
-    OutVal(3, RStruct<FVector>, location, "Location", "The location at the given track position")
-	OutVal(4, RStruct<FVector>, rotation, "Rotation", "The rotation at the given track position (forward vector)")
+	InVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
+    InVal(RFloat, offset, "Offset", "The offset of the track pos.")
+    InVal(RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
+    OutVal(RStruct<FVector>, location, "Location", "The location at the given track position")
+	OutVal(RStruct<FVector>, rotation, "Rotation", "The rotation at the given track position (forward vector)")
 	Body()
 	FRailroadTrackPosition pos(Cast<AFGBuildableRailroadTrack>(track.Get()), offset, forward);
 	FVector loc;
@@ -1957,18 +1969,18 @@ BeginFunc(getWorldLocAndRotAtPos, "Get World Location And Rotation At Position",
 	rotation = (FINAny)rot;
 } EndFunc()
 BeginFunc(getConnection, "Get Connection", "Returns the railroad track connection at the given direction.") {
-	InVal(0, RInt, direction, "Direction", "The direction of which you want to get the connector from. 0 = front, 1 = back")
-	OutVal(1, RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The connection component in the given direction.")
+	InVal(RInt, direction, "Direction", "The direction of which you want to get the connector from. 0 = front, 1 = back")
+	OutVal(RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The connection component in the given direction.")
 	Body()
 	connection = Ctx.GetTrace() / self->GetConnection(FMath::Clamp<int>(direction, 0, 1));
 } EndFunc()
 BeginFunc(getTrackGraph, "Get Track Graph", "Returns the track graph of which this track is part of.") {
-	OutVal(0, RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this track is part of.")
+	OutVal(RStruct<FFINTrackGraph>, track, "Track", "The track graph of which this track is part of.")
     Body()
     track = (FINAny)FFINTrackGraph{Ctx.GetTrace(), self->GetTrackGraphID()};
 } EndFunc()
 BeginFunc(getVehciles, "Get Vehicles", "Returns a list of Railroad Vehicles on the Track") {
-	OutVal(0, RArray<RTrace<AFGRailroadVehicle>>, vehicles, "Vehicles", "THe list of vehciles on the track.")
+	OutVal(RArray<RTrace<AFGRailroadVehicle>>, vehicles, "Vehicles", "THe list of vehciles on the track.")
 	Body()
 	TArray<FINAny> Vehicles;
 	for (AFGRailroadVehicle* vehicle : self->GetVehicles()) {
@@ -1992,13 +2004,13 @@ BeginProp(RStruct<FVector>, connectorNormal, "Connector Normal", "The normal vec
 	Return self->GetConnectorNormal();
 } EndProp()
 BeginFunc(getConnection, "Get Connection", "Returns the connected connection with the given index.") {
-	InVal(1, RInt, index, "Index", "The index of the connected connection you want to get.")
-	OutVal(0, RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The connected connection at the given index.")
+	InVal(RInt, index, "Index", "The index of the connected connection you want to get.")
+	OutVal(RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The connected connection at the given index.")
 	Body()
 	connection = Ctx.GetTrace() / self->GetConnection(index);
 } EndFunc()
 BeginFunc(getConnections, "Get Connections", "Returns a list of all connected connections.") {
-	OutVal(0, RArray<RTrace<UFGRailroadTrackConnectionComponent>>, connections, "Connections", "A list of all connected connections.")
+	OutVal(RArray<RTrace<UFGRailroadTrackConnectionComponent>>, connections, "Connections", "A list of all connected connections.")
 	Body()
 	TArray<FINAny> Connections;
 	for (UFGRailroadTrackConnectionComponent* conn : self->GetConnections()) {
@@ -2007,9 +2019,9 @@ BeginFunc(getConnections, "Get Connections", "Returns a list of all connected co
 	connections = Connections;
 } EndFunc()
 BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this connection is.") {
-	OutVal(0, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
-    OutVal(1, RFloat, offset, "Offset", "The offset of the track pos.")
-    OutVal(2, RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
+	OutVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track the track pos points to.")
+    OutVal(RFloat, offset, "Offset", "The offset of the track pos.")
+    OutVal(RFloat, forward, "Forward", "The forward direction of the track pos. 1 = with the track direction, -1 = against the track direction")
     Body()
     FRailroadTrackPosition pos = self->GetTrackPosition();
 	if (!pos.IsValid()) throw FFINException("Railroad Track Position of self is invalid");
@@ -2018,52 +2030,52 @@ BeginFunc(getTrackPos, "Get Track Pos", "Returns the track pos at which this con
 	forward = pos.Forward;
 } EndFunc()
 BeginFunc(getTrack, "Get Track", "Returns the track of which this connection is part of.") {
-	OutVal(0, RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track of which this connection is part of.")
+	OutVal(RTrace<AFGBuildableRailroadTrack>, track, "Track", "The track of which this connection is part of.")
 	Body()
 	track = Ctx.GetTrace() / self->GetTrack();
 } EndFunc()
 BeginFunc(getSwitchControl, "Get Switch Control", "Returns the switch control of this connection.") {
-	OutVal(0, RTrace<AFGBuildableRailroadSwitchControl>, switchControl, "Switch", "The switch control of this connection.")
+	OutVal(RTrace<AFGBuildableRailroadSwitchControl>, switchControl, "Switch", "The switch control of this connection.")
 	Body()
 	switchControl = Ctx.GetTrace() / self->GetSwitchControl();
 } EndFunc()
 BeginFunc(getStation, "Get Station", "Returns the station of which this connection is part of.") {
-	OutVal(0, RTrace<AFGBuildableRailroadStation>, station, "Station", "The station of which this connection is part of.")
+	OutVal(RTrace<AFGBuildableRailroadStation>, station, "Station", "The station of which this connection is part of.")
 	Body()
 	station = Ctx.GetTrace() / self->GetStation();
 } EndFunc()
 BeginFunc(getFacingSignal, "Get Facing Signal", "Returns the signal this connection is facing to.") {
-	OutVal(0, RTrace<AFGBuildableRailroadSignal>, signal, "Signal", "The signal this connection is facing.")
+	OutVal(RTrace<AFGBuildableRailroadSignal>, signal, "Signal", "The signal this connection is facing.")
 	Body()
 	signal = Ctx.GetTrace() / self->GetFacingSignal();
 } EndFunc()
 BeginFunc(getTrailingSignal, "Get Trailing Signal", "Returns the signal this connection is trailing from.") {
-	OutVal(0, RTrace<AFGBuildableRailroadSignal>, signal, "Signal", "The signal this connection is trailing.")
+	OutVal(RTrace<AFGBuildableRailroadSignal>, signal, "Signal", "The signal this connection is trailing.")
 	Body()
 	signal = Ctx.GetTrace() / self->GetTrailingSignal();
 } EndFunc()
 BeginFunc(getOpposite, "Get Opposite", "Returns the opposite connection of the track this connection is part of.") {
-	OutVal(0, RTrace<UFGRailroadTrackConnectionComponent>, opposite, "Opposite", "The opposite connection of the track this connection is part of.")
+	OutVal(RTrace<UFGRailroadTrackConnectionComponent>, opposite, "Opposite", "The opposite connection of the track this connection is part of.")
 	Body()
 	opposite = Ctx.GetTrace() / self->GetOpposite();
 } EndFunc()
 BeginFunc(getNext, "Get Next", "Returns the next connection in the direction of the track. (used the correct path switched point to)") {
-	OutVal(0, RTrace<UFGRailroadTrackConnectionComponent>, next, "Next", "The next connection in the direction of the track.")
+	OutVal(RTrace<UFGRailroadTrackConnectionComponent>, next, "Next", "The next connection in the direction of the track.")
 	Body()
 	next = Ctx.GetTrace() / self->GetNext();
 } EndFunc()
 BeginFunc(setSwitchPosition, "Set Switch Position", "Sets the position (connection index) to which the track switch points to.") {
-	InVal(0, RInt, index, "Index", "The connection index to which the switch should point to.")
+	InVal(RInt, index, "Index", "The connection index to which the switch should point to.")
 	Body()
 	self->SetSwitchPosition(index);
 } EndFunc()
 BeginFunc(getSwitchPosition, "Get Switch Position", "Returns the current switch position.") {
-	OutVal(0, RInt, index, "Index", "The index of the connection connection the switch currently points to.")
+	OutVal(RInt, index, "Index", "The index of the connection connection the switch currently points to.")
     Body()
     index = (int64)self->GetSwitchPosition();
 } EndFunc()
 BeginFunc(forceSwitchPosition, "Force Switch Position", "Forces the switch position to a given location. Even autopilot will be forced to use this track. A negative number can be used to remove the forced track.", 0) {
-	InVal(0, RInt, index, "Index", "The connection index to whcih the switch should be force to point to. Negative number to remove the lock.")
+	InVal(RInt, index, "Index", "The connection index to whcih the switch should be force to point to. Negative number to remove the lock.")
 	Body()
 	self->SetSwitchPosition(index);
 	AFINComputerSubsystem::GetComputerSubsystem(self)->ForceRailroadSwitch(self, index);
@@ -2088,12 +2100,12 @@ BeginFunc(toggleSwitch, "Toggle Switch", "Toggles the railroad switch like if yo
 	self->ToggleSwitchPosition();
 } EndFunc()
 BeginFunc(switchPosition, "Switch Position", "Returns the current switch position of this switch.") {
-	OutVal(0, RInt, position, "Position", "The current switch position of this switch.")
+	OutVal(RInt, position, "Position", "The current switch position of this switch.")
     Body()
     position = (int64)self->GetSwitchPosition();
 } EndFunc()
 BeginFunc(getControlledConnection, "Get Controlled Connection", "Returns the Railroad Connection this switch is controlling.") {
-	OutVal(0, RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The controlled connectino.")
+	OutVal(RTrace<UFGRailroadTrackConnectionComponent>, connection, "Connection", "The controlled connectino.")
 	Body()
 	connection = Ctx.GetTrace() / self->GetmControlledConnection();
 } EndFunc()
@@ -2102,10 +2114,10 @@ EndClass()
 BeginClass(AFGBuildableRailroadSignal, "RailroadSignal", "Railroad Signal", "A train signal to control trains on a track.")
 Hook(UFINRailroadSignalHook)
 BeginSignal(AspectChanged, "Aspect Changed", "Triggers when the aspect of this signal changes.")
-	SignalParam(0, RInt, aspect, "Aspect", "The new aspect of the signal (see 'Get Aspect' for more information)")
+	SignalParam(RInt, aspect, "Aspect", "The new aspect of the signal (see 'Get Aspect' for more information)")
 EndSignal()
 BeginSignal(ValidationChanged, "Validation Changed", "Triggers when the validation of this signal changes.")
-	SignalParam(0, RInt, validation, "Validation", "The new validation of the signal (see 'Block Validation' for more information)")
+	SignalParam(RInt, validation, "Validation", "The new validation of the signal (see 'Block Validation' for more information)")
 EndSignal()
 BeginProp(RBool, isPathSignal, "Is Path Signal", "True if this signal is a path-signal.") {
 	Return self->IsPathSignal();
@@ -2123,12 +2135,12 @@ BeginProp(RInt, aspect, "Aspect", "The aspect of the signal. The aspect shows if
 	Return (int64)self->GetAspect();
 } EndProp()
 BeginFunc(getObservedBlock, "Get Observed Block", "Returns the track block this signals observes.") {
-	OutVal(0, RStruct<FFINRailroadSignalBlock>, block, "Block", "The railroad signal block this signal is observing.")
+	OutVal(RStruct<FFINRailroadSignalBlock>, block, "Block", "The railroad signal block this signal is observing.")
 	Body()
 	block = FINStruct(FFINRailroadSignalBlock(self->GetObservedBlock()));
 } EndFunc()
 BeginFunc(getGuardedConnnections, "Get Guarded Connections", "Returns a list of the guarded connections. (incoming connections)") {
-	OutVal(0, RArray<RTrace<UFGRailroadTrackConnectionComponent>>, guardedConnections, "GuardedConnections", "The guarded connections.")
+	OutVal(RArray<RTrace<UFGRailroadTrackConnectionComponent>>, guardedConnections, "GuardedConnections", "The guarded connections.")
 	Body()
 	TArray<FINAny> GuardedConnections;
 	for (UFGRailroadTrackConnectionComponent* Connection : self->GetGuardedConnections()) {
@@ -2137,7 +2149,7 @@ BeginFunc(getGuardedConnnections, "Get Guarded Connections", "Returns a list of 
 	guardedConnections = GuardedConnections;
 } EndFunc()
 BeginFunc(getObservedConnections, "Get Observed Connections", "Returns a list of the observed connections. (outgoing connections)") {
-	OutVal(0, RArray<RTrace<UFGRailroadTrackConnectionComponent>>, observedConnections, "ObservedConnections", "The observed connections.")
+	OutVal(RArray<RTrace<UFGRailroadTrackConnectionComponent>>, observedConnections, "ObservedConnections", "The observed connections.")
 	Body()
 	TArray<FINAny> ObservedConnections;
 	for (UFGRailroadTrackConnectionComponent* Connection : self->GetObservedConnections()) {
@@ -2164,17 +2176,17 @@ EndClass()
 
 BeginClass(AFGBuildableDockingStation, "DockingStation", "Docking Station", "A docking station for wheeled vehicles to transfer cargo.")
 BeginFunc(getFuelInv, "Get Fueld Inventory", "Returns the fuel inventory of the docking station.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The fuel inventory of the docking station.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The fuel inventory of the docking station.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetFuelInventory();
 } EndFunc()
 BeginFunc(getInv, "Get Inventory", "Returns the cargo inventory of the docking staiton.") {
-	OutVal(0, RTrace<UFGInventoryComponent>, inventory, "Inventory", "The cargo inventory of this docking station.")
+	OutVal(RTrace<UFGInventoryComponent>, inventory, "Inventory", "The cargo inventory of this docking station.")
 	Body()
 	inventory = Ctx.GetTrace() / self->GetInventory();
 } EndFunc()
 BeginFunc(getDocked, "Get Docked", "Returns the currently docked actor.") {
-	OutVal(0, RTrace<AActor>, docked, "Docked", "The currently docked actor.")
+	OutVal(RTrace<AActor>, docked, "Docked", "The currently docked actor.")
 	Body()
 	docked = Ctx.GetTrace() / self->GetDockedActor();
 } EndFunc()
@@ -2198,7 +2210,7 @@ BeginFunc(flush, "Flush", "Emptys the whole fluid container.") {
 	AFGPipeSubsystem::Get(self->GetWorld())->FlushIntegrant(self);
 } EndFunc()
 BeginFunc(getFluidType, "Get Fluid Type", "Returns the type of the fluid.") {
-	OutVal(0, RClass<UFGItemDescriptor>, type, "Type", "The type of the fluid the tank contains.")
+	OutVal(RClass<UFGItemDescriptor>, type, "Type", "The type of the fluid the tank contains.")
 	Body()
 	type = (UClass*)self->GetFluidDescriptor();
 } EndFunc()
@@ -2279,15 +2291,15 @@ BeginProp(RInt, colorSlot, "Color Slot", "The color slot the light uses.") {
 	self->SetLightControlData(data);
 } EndProp()
 BeginFunc(getColorFromSlot, "Get Color from Slot", "Returns the light color that is referenced by the given slot.") {
-	InVal(0, RInt, slot, "Slot", "The slot you want to get the referencing color from.")
-	OutVal(1, RStruct<FLinearColor>, color, "Color", "The color this slot references.")
+	InVal(RInt, slot, "Slot", "The slot you want to get the referencing color from.")
+	OutVal(RStruct<FLinearColor>, color, "Color", "The color this slot references.")
 	Body()
 	AFGBuildableSubsystem* SubSys = AFGBuildableSubsystem::Get(self);
 	color = (FINStruct) SubSys->GetBuildableLightColorSlot(slot);
 } EndFunc()
 BeginFunc(setColorFromSlot, "Set Color from Slot", "Allows to update the light color that is referenced by the given slot.", 0) {
-	InVal(0, RInt, slot, "Slot", "The slot you want to update the referencing color for.")
-	InVal(1, RStruct<FLinearColor>, color, "Color", "The color this slot should now reference.")
+	InVal(RInt, slot, "Slot", "The slot you want to update the referencing color for.")
+	InVal(RStruct<FLinearColor>, color, "Color", "The color this slot should now reference.")
 	Body()
 	AFGBuildableSubsystem* SubSys = AFGBuildableSubsystem::Get(self);
 	Cast<AFGGameState>(self->GetWorld()->GetGameState())->Server_SetBuildableLightColorSlot(slot, color);
@@ -2334,8 +2346,8 @@ BeginProp(RInt, colorSlot, "Color Slot", "The color slot the lights should use."
 	}
 } EndProp()
 BeginFunc(setColorFromSlot, "Set Color from Slot", "Allows to update the light color that is referenced by the given slot.", 0) {
-	InVal(0, RInt, slot, "Slot", "The slot you want to update the referencing color for.")
-	InVal(1, RStruct<FLinearColor>, color, "Color", "The color this slot should now reference.")
+	InVal(RInt, slot, "Slot", "The slot you want to update the referencing color for.")
+	InVal(RStruct<FLinearColor>, color, "Color", "The color this slot should now reference.")
 	Body()
 	AFGBuildableSubsystem* SubSys = AFGBuildableSubsystem::Get(self);
 	Cast<AFGGameState>(self->GetWorld()->GetGameState())->Server_SetBuildableLightColorSlot(slot, color);
@@ -2344,7 +2356,7 @@ EndClass()
 
 BeginClass(AFGBuildableSignBase, "SignBase", "Sign Base", "The base class for all signs in the game.")
 BeginFunc(getSignType, "Get Sign Type", "Returns the sign type descriptor") {
-	OutVal(0, RClass<UFGSignTypeDescriptor>, descriptor, "Descriptor", "The sign type descriptor")
+	OutVal(RClass<UFGSignTypeDescriptor>, descriptor, "Descriptor", "The sign type descriptor")
 	Body()
 	descriptor = (FINClass)IFGSignInterface::Execute_GetSignTypeDescriptor(self);
 } EndFunc()
@@ -2352,12 +2364,12 @@ EndClass()
 
 BeginClass(AFGBuildableWidgetSign, "WidgetSign", "Widget Sign", "The type of sign that allows you to define layouts, images, texts and colors manually.")
 BeginFunc(setPrefabSignData, "Set Prefab Sign Data", "Sets the prefabg sign data e.g. the user settings like colo and more to define the signs content.", 0) {
-	InVal(0, RStruct<FPrefabSignData>, prefabSignData, "Prefab Sign Data", "The new prefab sign data for this sign.")
+	InVal(RStruct<FPrefabSignData>, prefabSignData, "Prefab Sign Data", "The new prefab sign data for this sign.")
 	Body()
 	self->SetPrefabSignData(prefabSignData);
 } EndFunc()
 BeginFunc(getPrefabSignData, "Get Prefab Sign Data", "Returns the prefabg sign data e.g. the user settings like colo and more to define the signs content.") {
-	OutVal(0, RStruct<FPrefabSignData>, prefabSignData, "Prefab Sign Data", "The new prefab sign data for this sign.")
+	OutVal(RStruct<FPrefabSignData>, prefabSignData, "Prefab Sign Data", "The new prefab sign data for this sign.")
 	Body()
 	FPrefabSignData SignData;
 	self->GetSignPrefabData(SignData);
@@ -2372,9 +2384,9 @@ BeginClassProp(RStruct<FVector2D>, dimensions, "Dimensions", "The canvas dimensi
 	Return dimensions;
 } EndProp()
 BeginClassFunc(getColors, "Get Colors", "Returns the default foreground/background/auxiliary colors of this sign type.", false) {
-	OutVal(0, RStruct<FLinearColor>, foreground, "Foreground", "The foreground color")
-	OutVal(1, RStruct<FLinearColor>, background, "Background", "The background color")
-	OutVal(2, RStruct<FLinearColor>, auxiliary, "Auxiliary", "The auxiliary color")
+	OutVal(RStruct<FLinearColor>, foreground, "Foreground", "The foreground color")
+	OutVal(RStruct<FLinearColor>, background, "Background", "The background color")
+	OutVal(RStruct<FLinearColor>, auxiliary, "Auxiliary", "The auxiliary color")
 	Body()
 	FLinearColor fg, bg, au;
 	UFGSignLibrary::GetDefaultColorsFromSignDescriptor(self, fg, bg, au);
@@ -2383,7 +2395,7 @@ BeginClassFunc(getColors, "Get Colors", "Returns the default foreground/backgrou
 	auxiliary = (FINStruct)au;
 } EndFunc()
 BeginClassFunc(getPrefabs, "Get Prefabs", "Returns a list of all sign prefabs this sign can use.", false) {
-	OutVal(0, RArray<RClass<UFGSignPrefabWidget>>, prefabs, "Prefabs", "The sign prefabs this sign can use")
+	OutVal(RArray<RClass<UFGSignPrefabWidget>>, prefabs, "Prefabs", "The sign prefabs this sign can use")
 	Body()
 	TArray<FINAny> PrefabsArray;
 	TArray<TSubclassOf<UFGSignPrefabWidget>> PrefabList;
@@ -2394,8 +2406,8 @@ BeginClassFunc(getPrefabs, "Get Prefabs", "Returns a list of all sign prefabs th
 	prefabs = PrefabsArray;
 } EndFunc()
 BeginClassFunc(getTextElements, "Get Text Elements", "Returns a list of element names and their default text values.", false) {
-	OutVal(0, RArray<RString>, textElements, "Text Elements", "A list of text element names of this type.")
-	OutVal(0, RArray<RString>, textElementsDefaultValues, "Text Elements Default Values", "A list of default values for the text elements of this type.")
+	OutVal(RArray<RString>, textElements, "Text Elements", "A list of text element names of this type.")
+	OutVal(RArray<RString>, textElementsDefaultValues, "Text Elements Default Values", "A list of default values for the text elements of this type.")
 	Body()
 	TArray<FINAny> TextElements, TextElementsDefaultValues;
 	TMap<FString, FString> Elements;
@@ -2408,8 +2420,8 @@ BeginClassFunc(getTextElements, "Get Text Elements", "Returns a list of element 
 	textElementsDefaultValues = TextElementsDefaultValues;
 } EndFunc()
 BeginClassFunc(getIconElements, "Get Icon Elements", "Returns a list of element names and their default icon values.", false) {
-	OutVal(0, RArray<RString>, iconElements, "Icon Elements", "A list of icon element names of this type.")
-	OutVal(0, RArray<RObject<UTexture2D>>, iconElementsDefaultValues, "Icon Elements Default Values", "A list of default values for the icon elements of this type.")
+	OutVal(RArray<RString>, iconElements, "Icon Elements", "A list of icon element names of this type.")
+	OutVal(RArray<RObject<UTexture2D>>, iconElementsDefaultValues, "Icon Elements Default Values", "A list of default values for the icon elements of this type.")
 	Body()
 	TArray<FINAny> IconElements, IconElementsDefaultValues;
 	TMap<FString, UObject*> Elements;
@@ -2453,8 +2465,8 @@ BeginProp(RClass<UFGSignTypeDescriptor>, signType, "Sign Type", "The type of sig
 	self->SignTypeDesc = Val;
 } EndProp()
 BeginFunc(getTextElements, "Get Text Elements", "Returns all text elements and their values.") {
-	OutVal(0, RArray<RString>, textElements, "Text Elements", "The element names for all text elements.")
-	OutVal(1, RArray<RString>, textElementValues, "Text Element Values", "The values for all text elements.")
+	OutVal(RArray<RString>, textElements, "Text Elements", "The element names for all text elements.")
+	OutVal(RArray<RString>, textElementValues, "Text Element Values", "The values for all text elements.")
 	Body()
 	TArray<FINAny> TextElements, TextElementValues;
 	for (const TPair<FString, FString>& Element : self->TextElementData) {
@@ -2465,8 +2477,8 @@ BeginFunc(getTextElements, "Get Text Elements", "Returns all text elements and t
 	textElementValues = (FINArray)TextElementValues;
 } EndFunc()
 BeginFunc(getIconElements, "Get Icon Elements", "Returns all icon elements and their values.") {
-	OutVal(0, RArray<RString>, iconElements, "Icon Elements", "The element names for all icon elements.")
-	OutVal(1, RArray<RInt>, iconElementValues, "Icon Element Values", "The values for all icon elements.")
+	OutVal(RArray<RString>, iconElements, "Icon Elements", "The element names for all icon elements.")
+	OutVal(RArray<RInt>, iconElementValues, "Icon Element Values", "The values for all icon elements.")
 	Body()
 	TArray<FINAny> IconElements, IconElementValues;
 	for (const TPair<FString, int32>& Element : self->IconElementData) {
@@ -2477,8 +2489,8 @@ BeginFunc(getIconElements, "Get Icon Elements", "Returns all icon elements and t
 	iconElementValues = IconElementValues;
 } EndFunc()
 BeginFunc(setTextElements, "Set Text Elements", "Sets all text elements and their values.") {
-	InVal(0, RArray<RString>, textElements, "Text Elements", "The element names for all text elements.")
-	InVal(1, RArray<RString>, textElementValues, "Text Element Values", "The values for all text elements.")
+	InVal(RArray<RString>, textElements, "Text Elements", "The element names for all text elements.")
+	InVal(RArray<RString>, textElementValues, "Text Element Values", "The values for all text elements.")
 	Body()
 	if (textElements.Num() != textElementValues.Num()) throw FFINException(TEXT("Count of element names and element values are not the same."));
 	self->TextElementData.Empty();
@@ -2487,8 +2499,8 @@ BeginFunc(setTextElements, "Set Text Elements", "Sets all text elements and thei
 	}
 } EndFunc()
 BeginFunc(setIconElements, "Set Icon Elements", "Sets all icon elements and their values.") {
-	InVal(0, RArray<RString>, iconElements, "Icon Elements", "The element names for all icon elements.")
-	InVal(1, RArray<RInt>, iconElementValues, "Icon Element Values", "The values for all icon elements.")
+	InVal(RArray<RString>, iconElements, "Icon Elements", "The element names for all icon elements.")
+	InVal(RArray<RInt>, iconElementValues, "Icon Element Values", "The values for all icon elements.")
 	Body()
 	if (iconElements.Num() != iconElementValues.Num()) throw FFINException(TEXT("Count of element names and element values are not the same."));
 	self->IconElementData.Empty();
@@ -2497,28 +2509,28 @@ BeginFunc(setIconElements, "Set Icon Elements", "Sets all icon elements and thei
 	}
 } EndFunc()
 BeginFunc(setTextElement, "Set Text Element", "Sets a text element with the given element name.") {
-	InVal(0, RString, elementName, "Element Name", "The name of the text element")
-	InVal(1, RString, value, "Value", "The value of the text element")
+	InVal(RString, elementName, "Element Name", "The name of the text element")
+	InVal(RString, value, "Value", "The value of the text element")
 	Body()
 	self->TextElementData.Add(elementName, value);
 } EndFunc()
 BeginFunc(setIconElement, "Set Icon Element", "Sets a icon element with the given element name.") {
-	InVal(0, RString, elementName, "Element Name", "The name of the icon element")
-	InVal(1, RInt, value, "Value", "The value of the icon element")
+	InVal(RString, elementName, "Element Name", "The name of the icon element")
+	InVal(RInt, value, "Value", "The value of the icon element")
 	Body()
 	self->IconElementData.Add(elementName, value);
 } EndFunc()
 BeginFunc(getTextElement, "Get Text Element", "Gets a text element with the given element name.") {
-	InVal(0, RString, elementName, "Element Name", "The name of the text element")
-	OutVal(1, RInt, value, "Value", "The value of the text element")
+	InVal(RString, elementName, "Element Name", "The name of the text element")
+	OutVal(RInt, value, "Value", "The value of the text element")
 	Body()
 	FString* Element = self->TextElementData.Find(elementName);
 	if (!Element) throw FFINException(TEXT("No element with the given name found"));
 	value = *Element;
 } EndFunc()
 BeginFunc(getIconElement, "Get Icon Element", "Gets a icon element with the given element name.") {
-	InVal(0, RString, elementName, "Element Name", "The name of the icon element")
-	OutVal(1, RInt, value, "Value", "The value of the icon element")
+	InVal(RString, elementName, "Element Name", "The name of the icon element")
+	OutVal(RInt, value, "Value", "The value of the icon element")
 	Body()
 	int* Element = self->IconElementData.Find(elementName);
 	if (!Element) throw FFINException(TEXT("No element with the given name found"));
@@ -2534,7 +2546,7 @@ BeginClassProp(RFloat, duration, "Duration", "The duration how much time it take
 	Return UFGRecipe::GetManufacturingDuration(self);
 } EndProp()
 BeginClassFunc(getProducts, "Get Products", "Returns a array of item amounts, this recipe returns (outputs) when the recipe is processed once.", false) {
-	OutVal(0, RArray<RStruct<FItemAmount>>, products, "Products", "The products of this recipe.")
+	OutVal(RArray<RStruct<FItemAmount>>, products, "Products", "The products of this recipe.")
 	Body()
 	TArray<FINAny> Products;
 	for (const FItemAmount& Product : UFGRecipe::GetProducts(self)) {
@@ -2543,7 +2555,7 @@ BeginClassFunc(getProducts, "Get Products", "Returns a array of item amounts, th
 	products = Products;
 } EndFunc()
 BeginClassFunc(getIngredients, "Get Ingredients", "Returns a array of item amounts, this recipe needs (input) so the recipe can be processed.", false) {
-	OutVal(0, RArray<RStruct<FItemAmount>>, ingredients, "Ingredients", "The ingredients of this recipe.")
+	OutVal(RArray<RStruct<FItemAmount>>, ingredients, "Ingredients", "The ingredients of this recipe.")
 	Body()
 	TArray<FINAny> Ingredients;
 	for (const FItemAmount& Ingredient : UFGRecipe::GetIngredients(self)) {
@@ -2604,31 +2616,31 @@ BeginProp(RFloat, y, "Y", "The Y coordinate component") {
 	self->Y = Val;
 } EndProp()
 BeginOp(FIN_Operator_Add, 0, "Operator Add", "The addition (+) operator for this struct.") {
-	InVal(0, RStruct<FVector2D>, other, "Other", "The other vector that should be added to this vector")
-	OutVal(1, RStruct<FVector2D>, result, "Result", "The resulting vector of the vector addition")
+	InVal(RStruct<FVector2D>, other, "Other", "The other vector that should be added to this vector")
+	OutVal(RStruct<FVector2D>, result, "Result", "The resulting vector of the vector addition")
 	Body()
 	result = (FINStruct)(*self + other);
 } EndFunc()
 BeginOp(FIN_Operator_Sub, 0, "Operator Sub", "The subtraction (-) operator for this struct.") {
-	InVal(0, RStruct<FVector2D>, other, "Other", "The other vector that should be subtracted from this vector")
-	OutVal(1, RStruct<FVector2D>, result, "Result", "The resulting vector of the vector subtraction")
+	InVal(RStruct<FVector2D>, other, "Other", "The other vector that should be subtracted from this vector")
+	OutVal(RStruct<FVector2D>, result, "Result", "The resulting vector of the vector subtraction")
 	Body()
 	result = (FINStruct)(*self - other);
 } EndFunc()
 BeginOp(FIN_Operator_Neg, 0, "Operator Neg", "The Negation operator for this struct.") {
-	OutVal(0, RStruct<FVector2D>, result, "Result", "The resulting vector of the vector negation")
+	OutVal(RStruct<FVector2D>, result, "Result", "The resulting vector of the vector negation")
 	Body()
 	result = (FINStruct)(-*self);
 } EndFunc()
 BeginOp(FIN_Operator_Mul, 0, "Scalar Product", "") {
-	InVal(0, RStruct<FVector2D>, other, "Other", "The other vector to calculate the scalar product with.")
-	OutVal(1, RFloat, result, "Result", "The resulting scalar product.")
+	InVal(RStruct<FVector2D>, other, "Other", "The other vector to calculate the scalar product with.")
+	OutVal(RFloat, result, "Result", "The resulting scalar product.")
 	Body()
 	result = (FINStruct)(*self * other);
 } EndFunc()
 BeginOp(FIN_Operator_Mul, 1, "Vector Factor Scaling", "") {
-	InVal(0, RFloat, factor, "Factor", "The factor with which this vector should be scaled with.")
-	OutVal(1, RStruct<FVector2D>, result, "Result", "The resulting scaled vector.")
+	InVal(RFloat, factor, "Factor", "The factor with which this vector should be scaled with.")
+	OutVal(RStruct<FVector2D>, result, "Result", "The resulting scaled vector.")
 	Body()
 	result = (FINStruct)(*self * factor);
 } EndFunc()
@@ -2651,31 +2663,31 @@ BeginProp(RFloat, z, "Z", "The Z coordinate component") {
 	self->Z = Val;
 } EndProp()
 BeginOp(FIN_Operator_Add, 0, "Operator Add", "The addition (+) operator for this struct.") {
-	InVal(0, RStruct<FVector>, other, "Other", "The other vector that should be added to this vector")
-	OutVal(1, RStruct<FVector>, result, "Result", "The resulting vector of the vector addition")
+	InVal(RStruct<FVector>, other, "Other", "The other vector that should be added to this vector")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting vector of the vector addition")
 	Body()
 	result = (FINStruct)(*self + other);
 } EndFunc()
 BeginOp(FIN_Operator_Sub, 0, "Operator Sub", "The subtraction (-) operator for this struct.") {
-	InVal(0, RStruct<FVector>, other, "Other", "The other vector that should be subtracted from this vector")
-	OutVal(1, RStruct<FVector>, result, "Result", "The resulting vector of the vector subtraction")
+	InVal(RStruct<FVector>, other, "Other", "The other vector that should be subtracted from this vector")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting vector of the vector subtraction")
 	Body()
 	result = (FINStruct)(*self - other);
 } EndFunc()
 BeginOp(FIN_Operator_Neg, 0, "Operator Neg", "The Negation operator for this struct.") {
-	OutVal(0, RStruct<FVector>, result, "Result", "The resulting vector of the vector negation")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting vector of the vector negation")
 	Body()
 	result = (FINStruct)(-*self);
 } EndFunc()
 BeginOp(FIN_Operator_Mul, 0, "Scalar Product", "") {
-	InVal(0, RStruct<FVector>, other, "Other", "The other vector to calculate the scalar product with.")
-	OutVal(1, RFloat, result, "Result", "The resulting scalar product.")
+	InVal(RStruct<FVector>, other, "Other", "The other vector to calculate the scalar product with.")
+	OutVal(RFloat, result, "Result", "The resulting scalar product.")
 	Body()
 	result = (FINStruct)(*self * other);
 } EndFunc()
 BeginOp(FIN_Operator_Mul, 1, "Vector Factor Scaling", "") {
-	InVal(0, RFloat, factor, "Factor", "The factor with which this vector should be scaled with.")
-	OutVal(1, RStruct<FVector>, result, "Result", "The resulting scaled vector.")
+	InVal(RFloat, factor, "Factor", "The factor with which this vector should be scaled with.")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting scaled vector.")
 	Body()
 	result = (FINStruct)(*self * factor);
 } EndFunc()
@@ -2698,14 +2710,14 @@ BeginProp(RFloat, roll, "Roll", "The roll component") {
 	self->Roll = Val;
 } EndProp()
 BeginOp(FIN_Operator_Add, 0, "Operator Add", "The addition (+) operator for this struct.") {
-	InVal(0, RStruct<FRotator>, other, "Other", "The other rotator that should be added to this rotator")
-	OutVal(1, RStruct<FRotator>, result, "Result", "The resulting rotator of the vector addition")
+	InVal(RStruct<FRotator>, other, "Other", "The other rotator that should be added to this rotator")
+	OutVal(RStruct<FRotator>, result, "Result", "The resulting rotator of the vector addition")
 	Body()
 	result = (FINStruct)(*self + other);
 } EndFunc()
 BeginOp(FIN_Operator_Sub, 0, "Operator Sub", "The subtraction (-) operator for this struct.") {
-	InVal(0, RStruct<FRotator>, other, "Other", "The other rotator that should be subtracted from this rotator")
-	OutVal(1, RStruct<FRotator>, result, "Result", "The resulting rotator of the vector subtraction")
+	InVal(RStruct<FRotator>, other, "Other", "The other rotator that should be subtracted from this rotator")
+	OutVal(RStruct<FRotator>, result, "Result", "The resulting rotator of the vector subtraction")
 	Body()
 	result = (FINStruct)(*self - other);
 } EndFunc()
@@ -2718,12 +2730,12 @@ BeginProp(RTrace<AFGBuildableRailroadStation>, station, "Station", "The station 
 	self->Station = Val;
 } EndProp()
 BeginFunc(getRuleSet, "Get Rule Set", "Returns The rule set wich describe when the train will depart from the train station.") {
-	OutVal(0, RStruct<FTrainDockingRuleSet>, ruleset, "Rule Set", "The rule set of this time table stop.")
+	OutVal(RStruct<FTrainDockingRuleSet>, ruleset, "Rule Set", "The rule set of this time table stop.")
 	Body()
 	ruleset = FINStruct(self->RuleSet);
 } EndFunc()
 BeginFunc(setRuleSet, "Set Rule Set", "Allows you to change the Rule Set of this time table stop.") {
-	InVal(0, RStruct<FTrainDockingRuleSet>, ruleset, "Rule Set", "The rule set you want to use instead.")
+	InVal(RStruct<FTrainDockingRuleSet>, ruleset, "Rule Set", "The rule set you want to use instead.")
 	Body()
 	self->RuleSet = ruleset;
 } EndFunc()
@@ -2746,7 +2758,7 @@ BeginProp(RBool, isDurationAndRule, "Is Duration and Rule", "True if the duratio
 	self->IsDurationAndRule = Val;
 } EndProp()
 BeginFunc(getLoadFilters, "Get Load Filters", "Returns the types of items that will be loaded.") {
-	OutVal(0, RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
+	OutVal(RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
 	Body()
 	TArray<FINAny> Filters;
 	for (TSubclassOf<UFGItemDescriptor> Filter : self->LoadFilterDescriptors) {
@@ -2755,7 +2767,7 @@ BeginFunc(getLoadFilters, "Get Load Filters", "Returns the types of items that w
 	filters = Filters;
 } EndFunc()
 BeginFunc(setLoadFilters, "Set Load Filters", "Sets the types of items that will be loaded.") {
-	InVal(0, RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
+	InVal(RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
 	Body()
 	TArray<TSubclassOf<UFGItemDescriptor>> Filters;
 	for (const FINAny& Filter : filters) {
@@ -2764,7 +2776,7 @@ BeginFunc(setLoadFilters, "Set Load Filters", "Sets the types of items that will
 	self->LoadFilterDescriptors = Filters;
 } EndFunc()
 BeginFunc(getUnloadFilters, "Get Unload Filters", "Returns the types of items that will be unloaded.") {
-	OutVal(0, RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
+	OutVal(RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
 	Body()
 	TArray<FINAny> Filters;
 	for (TSubclassOf<UFGItemDescriptor> Filter : self->UnloadFilterDescriptors) {
@@ -2773,7 +2785,7 @@ BeginFunc(getUnloadFilters, "Get Unload Filters", "Returns the types of items th
 	filters = Filters;
 } EndFunc()
 BeginFunc(setUnloadFilters, "Set Unload Filters", "Sets the types of items that will be loaded.") {
-	InVal(0, RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
+	InVal(RArray<RClass<UFGItemDescriptor>>, filters, "Filters", "The item filter array")
 	Body()
 	TArray<TSubclassOf<UFGItemDescriptor>> Filters;
 	for (const FINAny& Filter : filters) {
@@ -2785,7 +2797,7 @@ EndStruct()
 
 BeginStruct(FFINTrackGraph, "TrackGraph", "Track Graph", "Struct that holds a cache of a whole train/rail network.")
 BeginFunc(getTrains, "Get Trains", "Returns a list of all trains in the network.") {
-	OutVal(0, RArray<RTrace<AFGTrain>>, trains, "Trains", "The list of trains in the network.")
+	OutVal(RArray<RTrace<AFGTrain>>, trains, "Trains", "The list of trains in the network.")
 	Body()
 	TArray<FINAny> Trains;
 	TArray<AFGTrain*> TrainList;
@@ -2796,7 +2808,7 @@ BeginFunc(getTrains, "Get Trains", "Returns a list of all trains in the network.
 	trains = Trains;
 } EndFunc()
 BeginFunc(getStations, "Get Stations", "Returns a list of all trainstations in the network.") {
-	OutVal(0, RArray<RTrace<AFGBuildableRailroadStation>>, stations, "Stations", "The list of trainstations in the network.")
+	OutVal(RArray<RTrace<AFGBuildableRailroadStation>>, stations, "Stations", "The list of trainstations in the network.")
     Body()
     TArray<FINAny> Stations;
 	TArray<AFGTrainStationIdentifier*> StationList;
@@ -2832,14 +2844,14 @@ BeginProp(RInt, blockValidation, "Block Validation", "Returns the blocks validat
 	Return (int64)self->Block.Pin()->GetBlockValidation();
 } EndProp()
 BeginFunc(isOccupiedBy, "Is Occupied By", "Allows you to check if this block is occupied by a given train.") {
-	InVal(0, RObject<AFGTrain>, train, "Train", "The train you want to check if it occupies this block")
-	OutVal(1, RBool, isOccupied, "Is Occupied", "True if the given train occupies this block.")
+	InVal(RObject<AFGTrain>, train, "Train", "The train you want to check if it occupies this block")
+	OutVal(RBool, isOccupied, "Is Occupied", "True if the given train occupies this block.")
 	Body()
 	if (!self->Block.IsValid()) throw FFINException(TEXT("Signalblock is invalid"));
 	isOccupied = self->Block.Pin()->IsOccupiedBy(train.Get());
 } EndFunc()
 BeginFunc(getOccupation, "Get Occupation", "Returns a list of trains that currently occupate the block.") {
-	OutVal(0, RArray<RTrace<AFGTrain>>, occupation, "Occupation", "A list of trains occupying the block.")
+	OutVal(RArray<RTrace<AFGTrain>>, occupation, "Occupation", "A list of trains occupying the block.")
 	Body()
 	if (!self->Block.IsValid()) throw FFINException(TEXT("Signalblock is invalid"));
 	TArray<FINAny> Occupation;
@@ -2849,7 +2861,7 @@ BeginFunc(getOccupation, "Get Occupation", "Returns a list of trains that curren
 	occupation = Occupation;
 } EndFunc()
 BeginFunc(getQueuedReservations, "Get Queued Reservations", "Returns a list of trains that try to reserve this block and wait for approval.") {
-	OutVal(0, RArray<RTrace<AFGTrain>>, reservations, "Reservations", "A list of trains that try to reserve this block and wait for approval.")
+	OutVal(RArray<RTrace<AFGTrain>>, reservations, "Reservations", "A list of trains that try to reserve this block and wait for approval.")
 	Body()
 	if (!self->Block.IsValid()) throw FFINException(TEXT("Signalblock is invalid"));
 	TArray<FINAny> Reservations;
@@ -2861,7 +2873,7 @@ BeginFunc(getQueuedReservations, "Get Queued Reservations", "Returns a list of t
 	reservations = Reservations;
 } EndFunc()
 BeginFunc(getApprovedReservations, "Get Approved Reservations", "Returns a list of trains that are approved by this block.") {
-	OutVal(0, RArray<RTrace<AFGTrain>>, reservations, "Reservations", "A list of trains that are approved by this block.")
+	OutVal(RArray<RTrace<AFGTrain>>, reservations, "Reservations", "A list of trains that are approved by this block.")
 	Body()
 	if (!self->Block.IsValid()) throw FFINException(TEXT("Signalblock is invalid"));
 	TArray<FINAny> Reservations;
@@ -2953,31 +2965,31 @@ BeginProp(RFloat, a, "Alpha", "The alpha (opacity) portion of the color.") {
 	self->A = Val;
 } EndProp()
 BeginOp(FIN_Operator_Add, 0, "Operator Add", "The addition (+) operator for this struct.") {
-	InVal(0, RStruct<FLinearColor>, other, "Other", "The other color that should be added to this color")
-	OutVal(1, RStruct<FLinearColor>, result, "Result", "The resulting color of the color addition")
+	InVal(RStruct<FLinearColor>, other, "Other", "The other color that should be added to this color")
+	OutVal(RStruct<FLinearColor>, result, "Result", "The resulting color of the color addition")
 	Body()
 	result = (FINStruct)(*self + other);
 } EndFunc()
 BeginOp(FIN_Operator_Neg, 1, "Operator Neg", "The Negation operator for this struct. Does NOT make the color negative. Calculates 1 - this.") {
-	OutVal(0, RStruct<FLinearColor>, result, "Result", "The resulting color of the color addition")
+	OutVal(RStruct<FLinearColor>, result, "Result", "The resulting color of the color addition")
 	Body()
 	result = (FINStruct)(FLinearColor::White - *self);
 } EndFunc()
 BeginOp(FIN_Operator_Sub, 0, "Operator Sub", "The subtraction (-) operator for this struct.") {
-	InVal(0, RStruct<FLinearColor>, other, "Other", "The other color that should be subtracted from this color")
-	OutVal(1, RStruct<FLinearColor>, result, "Result", "The resulting color of the color subtraction")
+	InVal(RStruct<FLinearColor>, other, "Other", "The other color that should be subtracted from this color")
+	OutVal(RStruct<FLinearColor>, result, "Result", "The resulting color of the color subtraction")
 	Body()
 	result = (FINStruct)(*self - other);
 } EndFunc()
 BeginOp(FIN_Operator_Mul, 1, "Color Factor Scaling", "") {
-	InVal(0, RFloat, factor, "Factor", "The factor with which this color should be scaled with.")
-	OutVal(1, RStruct<FVector>, result, "Result", "The resulting scaled color.")
+	InVal(RFloat, factor, "Factor", "The factor with which this color should be scaled with.")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting scaled color.")
 	Body()
 	result = (FINStruct)(*self * factor);
 } EndFunc()
 BeginOp(FIN_Operator_Div, 1, "Color Inverse Factor Scaling", "") {
-	InVal(0, RFloat, factor, "Factor", "The factor with which this color should be scaled inversly with.")
-	OutVal(1, RStruct<FVector>, result, "Result", "The resulting inverse scaled color.")
+	InVal(RFloat, factor, "Factor", "The factor with which this color should be scaled inversly with.")
+	OutVal(RStruct<FVector>, result, "Result", "The resulting inverse scaled color.")
 	Body()
 	result = (FINStruct)(*self / factor);
 } EndFunc()
@@ -2985,8 +2997,8 @@ EndStruct()
 
 BeginStructConstructable(FFINGPUT1Buffer, "GPUT1Buffer", "GPU T1 Buffer", "A structure that can hold a buffer of characters and colors that can be displayed with a gpu")
 BeginFunc(getSize, "Get Size", "Allows to get the dimensions of the buffer.", 2) {
-	OutVal(0, RFloat, width, "Width", "The width of this buffer")
-	OutVal(1, RFloat, height, "Height", "The height of this buffer")
+	OutVal(RFloat, width, "Width", "The width of this buffer")
+	OutVal(RFloat, height, "Height", "The height of this buffer")
 	Body()
 	int Width, Height;
 	self->GetSize(Width, Height);
@@ -2994,17 +3006,17 @@ BeginFunc(getSize, "Get Size", "Allows to get the dimensions of the buffer.", 2)
 	height = (FINInt)Height;
 } EndFunc()
 BeginFunc(setSize, "Set Size", "Allows to set the dimensions of the buffer.", 2) {
-	InVal(0, RFloat, width, "Width", "The width this buffer should now have")
-	InVal(1, RFloat, height, "Height", "The height this buffer now have")
+	InVal(RFloat, width, "Width", "The width this buffer should now have")
+	InVal(RFloat, height, "Height", "The height this buffer now have")
 	Body()
 	self->SetSize(width, height);
 } EndFunc()
 BeginFunc(get, "Get", "Allows to get a single pixel from the buffer at the given position", 2) {
-	InVal(0, RInt, x, "X", "The x position of the character you want to get")
-	InVal(1, RInt, y, "Y", "The y position of the character you want to get")
-	OutVal(2, RString, c, "Char", "The character at the given position")
-	OutVal(3, RStruct<FLinearColor>, foreground, "Foreground Color", "The foreground color of the pixel at the given position")
-	OutVal(4, RStruct<FLinearColor>, background, "Background Color", "The background color of the pixel at the given position")
+	InVal(RInt, x, "X", "The x position of the character you want to get")
+	InVal(RInt, y, "Y", "The y position of the character you want to get")
+	OutVal(RString, c, "Char", "The character at the given position")
+	OutVal(RStruct<FLinearColor>, foreground, "Foreground Color", "The foreground color of the pixel at the given position")
+	OutVal(RStruct<FLinearColor>, background, "Background Color", "The background color of the pixel at the given position")
 	Body()
 	const FFINGPUT1BufferPixel& Pixel = self->Get(x, y);
 	c = FString::Chr(Pixel.Character);
@@ -3012,52 +3024,52 @@ BeginFunc(get, "Get", "Allows to get a single pixel from the buffer at the given
 	background = (FINStruct) Pixel.BackgroundColor;
 } EndFunc()
 BeginFunc(set, "Set", "Allows to set a single pixel of the buffer at the given position", 2) {
-	InVal(0, RInt, x, "X", "The x position of the character you want to set")
-	InVal(1, RInt, y, "Y", "The y position of the character you want to set")
-	InVal(2, RString, c, "Char", "The character the pixel should have")
-	InVal(3, RStruct<FLinearColor>, foreground, "Foreground Color", "The foreground color the pixel at the given position should have")
-	InVal(4, RStruct<FLinearColor>, background, "Background Color", "The background color the pixel at the given position should have")
-	OutVal(5, RBool, done, "Done", "True if the pixel got set successfully")
+	InVal(RInt, x, "X", "The x position of the character you want to set")
+	InVal(RInt, y, "Y", "The y position of the character you want to set")
+	InVal(RString, c, "Char", "The character the pixel should have")
+	InVal(RStruct<FLinearColor>, foreground, "Foreground Color", "The foreground color the pixel at the given position should have")
+	InVal(RStruct<FLinearColor>, background, "Background Color", "The background color the pixel at the given position should have")
+	OutVal(RBool, done, "Done", "True if the pixel got set successfully")
 	Body()
 	if (c.Len() < 1) return;
 	done = self->Set(x, y, FFINGPUT1BufferPixel(c[0], foreground, background));
 } EndFunc()
 BeginFunc(copy, "Copy", "Copies the given buffer at the given offset of the upper left corner into this buffer.", 2) {
-	InVal(0, RInt, x, "X", "The x offset of the upper left corner of the buffer relative to this buffer")
-	InVal(1, RInt, y, "Y", "The y offset of the upper left corener of the buffer relative to this buffer")
-	InVal(2, RStruct<FFINGPUT1Buffer>, buffer, "Buffer", "The buffer from wich you want to copy from")
-	InVal(3, RInt, textBlendMode, "Text Blend Mode", "The blend mode that is used for the text.\n0 = Overwrite this with the content of the given buffer\n1 = Overwrite with only characters that are not ' '\n2 = Overwrite only were this characters are ' '\n3 = Keep this buffer")
-	InVal(4, RInt, foregroundBlendMode, "Foreground Color Blend Mode", "The blend mode that is used for the foreground color.\n0 = Overwrite with the given color\n1 = Normal alpha composition\n2 = Multiply\n3 = Divide\n4 = Addition\n5 = Subtraction\n6 = Difference\n7 = Darken Only\n8 = Lighten Only\n9 = None")
-	InVal(5, RInt, backgroundBlendMode, "Background Color Blend Mode", "The blend mode that is used for the background color.\n0 = Overwrite with the given color\n1 = Normal alpha composition\n2 = Multiply\n3 = Divide\n4 = Addition\n5 = Subtraction\n6 = Difference\n7 = Darken Only\n8 = Lighten Only\n9 = None")
+	InVal(RInt, x, "X", "The x offset of the upper left corner of the buffer relative to this buffer")
+	InVal(RInt, y, "Y", "The y offset of the upper left corener of the buffer relative to this buffer")
+	InVal(RStruct<FFINGPUT1Buffer>, buffer, "Buffer", "The buffer from wich you want to copy from")
+	InVal(RInt, textBlendMode, "Text Blend Mode", "The blend mode that is used for the text.\n0 = Overwrite this with the content of the given buffer\n1 = Overwrite with only characters that are not ' '\n2 = Overwrite only were this characters are ' '\n3 = Keep this buffer")
+	InVal(RInt, foregroundBlendMode, "Foreground Color Blend Mode", "The blend mode that is used for the foreground color.\n0 = Overwrite with the given color\n1 = Normal alpha composition\n2 = Multiply\n3 = Divide\n4 = Addition\n5 = Subtraction\n6 = Difference\n7 = Darken Only\n8 = Lighten Only\n9 = None")
+	InVal(RInt, backgroundBlendMode, "Background Color Blend Mode", "The blend mode that is used for the background color.\n0 = Overwrite with the given color\n1 = Normal alpha composition\n2 = Multiply\n3 = Divide\n4 = Addition\n5 = Subtraction\n6 = Difference\n7 = Darken Only\n8 = Lighten Only\n9 = None")
 	Body()
 	self->Copy(x, y, buffer, (EFINGPUT1TextBlendingMethod)textBlendMode, (EFINGPUT1ColorBlendingMethod)foregroundBlendMode, (EFINGPUT1ColorBlendingMethod)backgroundBlendMode);
 } EndFunc()
 BeginFunc(setText, "Set Text", "Allows to write the given text onto the buffer and with the given offset.", 2) {
-	InVal(0, RInt, x, "X", "The X Position at which the text should begin to get written.")
-	InVal(1, RInt, y, "Y", "The Y Position at which the text should begin to get written.")
-	InVal(2, RString, text, "Text", "The text that should get written.")
-	InVal(3, RStruct<FLinearColor>, foreground, "Foreground", "The foreground color which will be used to write the text.")
-	InVal(4, RStruct<FLinearColor>, background, "Background", "The background color which will be used to write the text.")
+	InVal(RInt, x, "X", "The X Position at which the text should begin to get written.")
+	InVal(RInt, y, "Y", "The Y Position at which the text should begin to get written.")
+	InVal(RString, text, "Text", "The text that should get written.")
+	InVal(RStruct<FLinearColor>, foreground, "Foreground", "The foreground color which will be used to write the text.")
+	InVal(RStruct<FLinearColor>, background, "Background", "The background color which will be used to write the text.")
 	Body()
 	self->SetText(x, y, text, foreground, background);
 } EndFunc()
 BeginFunc(fill, "Fill", "Draws the given character at all given positions in the given rectangle on-to the hidden screen buffer.", 2) {
-	InVal(0, RInt, x, "X", "The x coordinate at which the rectangle should get drawn. (upper-left corner)")
-	InVal(1, RInt, y, "Y", "The y coordinate at which the rectangle should get drawn. (upper-left corner)")
-	InVal(2, RInt, width, "Width", "The width of the rectangle.")
-	InVal(3, RInt, height, "Height", "The height of the rectangle.")
-	InVal(4, RString, character, "Character", "A string with a single character that will be used for each pixel in the range you want to fill.")
-	InVal(5, RStruct<FLinearColor>, foreground, "Foreground", "The foreground color which will be used to fill the rectangle.")
-	InVal(6, RStruct<FLinearColor>, background, "Background", "The background color which will be used to fill the rectangle.")
+	InVal(RInt, x, "X", "The x coordinate at which the rectangle should get drawn. (upper-left corner)")
+	InVal(RInt, y, "Y", "The y coordinate at which the rectangle should get drawn. (upper-left corner)")
+	InVal(RInt, width, "Width", "The width of the rectangle.")
+	InVal(RInt, height, "Height", "The height of the rectangle.")
+	InVal(RString, character, "Character", "A string with a single character that will be used for each pixel in the range you want to fill.")
+	InVal(RStruct<FLinearColor>, foreground, "Foreground", "The foreground color which will be used to fill the rectangle.")
+	InVal(RStruct<FLinearColor>, background, "Background", "The background color which will be used to fill the rectangle.")
 	Body()
 	if (character.Len() < 1) character = " ";
 	self->Fill(x, y, width, height, FFINGPUT1BufferPixel(character[0], foreground, background));
 } EndFunc()
 BeginFunc(setRaw, "Set Raw", "Allows to set the internal data of the buffer more directly.", 2) {
-	InVal(0, RString, characters, "Characters", "The characters you want to draw with a length of exactly width*height.")
-	InVal(1, RArray<RFloat>, foreground, "Foreground Color", "The values of the foreground color slots for each character were a group of four values give one color. so the length has to be exactly width*height*4.")
-	InVal(2, RArray<RFloat>, background, "Background Color", "The values of the background color slots for each character were a group of four values give one color. so the length has to be exactly width*height*4.")
-	OutVal(3, RBool, success, "Success", "True if the raw data was successfully written")
+	InVal(RString, characters, "Characters", "The characters you want to draw with a length of exactly width*height.")
+	InVal(RArray<RFloat>, foreground, "Foreground Color", "The values of the foreground color slots for each character were a group of four values give one color. so the length has to be exactly width*height*4.")
+	InVal(RArray<RFloat>, background, "Background Color", "The values of the background color slots for each character were a group of four values give one color. so the length has to be exactly width*height*4.")
+	OutVal(RBool, success, "Success", "True if the raw data was successfully written")
 	Body()
 	TArray<float> Foreground, Background;
 	if (foreground.Num() != background.Num()) success = false;
@@ -3096,7 +3108,7 @@ BeginFunc(setRaw, "Set Raw", "Allows to set the internal data of the buffer more
 	}
 } EndFunc()
 BeginFunc(clone, "Clone", "Clones this buffer into a new struct") {
-	OutVal(0, RStruct<FFINGPUT1Buffer>, buffer, "Buffer", "The clone of this buffer")
+	OutVal(RStruct<FFINGPUT1Buffer>, buffer, "Buffer", "The clone of this buffer")
 	Body()
 	buffer = (FINStruct) *self;
 } EndFunc()
@@ -3113,7 +3125,7 @@ BeginProp(RInt, verbosity, "Verbosity", "The verbosity of the log entry.") {
 	Return (FINInt)self->Verbosity;
 } EndProp()
 BeginFunc(format, "Format", "Creates a formatted string representation of this log entry.") {
-	OutVal(0, RString, result, "Result", "The resulting formatted string")
+	OutVal(RString, result, "Result", "The resulting formatted string")
 	Body()
 	result = self->ToClipboardText();
 } EndFunc()
