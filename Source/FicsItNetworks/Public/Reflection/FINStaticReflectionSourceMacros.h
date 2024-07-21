@@ -4,6 +4,8 @@
 #include "Reflection/FINReflection.h"
 #include "Reflection/FINStaticReflectionSource.h"
 
+#include "ThirdParty/fameta_counter.hpp"
+
 #define TypeClassName(Type) FIN_StaticRef_ ## Type
 #define NSName "FicsItNetworks-StaticReflection"
 #define FINRefLocText(KeyName, Value) FInternationalization::ForUseOnlyByLocMacroAndGraphNodeTextLiterals_CreateText(Value, TEXT(NSName), KeyName)
@@ -34,8 +36,11 @@
 #define GetClassFunc [](){ return T::StaticClass(); }
 #define FuncClassName(Prefix, Func) FIN_StaticRefFunc_ ## Prefix ## _ ## Func
 #define FINRefFuncLocText(KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(FName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
+
+#define ParamCounterIncrease __ParamCounter__::next<__LINE__>()
 #define BeginFuncRT(Prefix, InternalName, DisplayName, Description, Varargs, FuncType, Runtime) \
 	namespace FuncClassName(Prefix, InternalName) { \
+		struct __ParamCounter__ : ::fameta::counter<__ParamCounter__> {}; \
 		constexpr int F = __COUNTER__; \
 		constexpr auto FName = TEXT(#InternalName) ; \
 		void Execute(const FFINExecutionContext& Ctx, TArray<FINAny>& Params); \
@@ -45,7 +50,6 @@
 			Execute(FINTrace(nullptr), Params); \
 		}); \
 		void Execute(const FFINExecutionContext& Ctx, TArray<FINAny>& Params) { \
-			int __ParamCounter__ = 0; \
 			static bool _bGotReg = false;
 #define GET_MACRO(_0, VAL,...) VAL
 #define BeginFunc(InternalName, DisplayName, Description, ...) BeginFuncRT(Member, InternalName, DisplayName, Description, false, 0, GET_MACRO(0 , ##__VA_ARGS__, 1) ) \
@@ -98,22 +102,30 @@
 #define FINRefParamLocText(ParamName, KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(FName) + TEXT("_") + TEXT(ParamName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
 #define InVal(Type, InternalName, DisplayName, Description) \
 	Type::CppType InternalName = Type::CppType(); \
-	if (!_bGotReg) { \
-		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 0, &Type::PropConstructor}); \
-		__ParamCounter__++; \
-	} \
-	else InternalName = Type::Get(Params[__ParamCounter__]);
+	{ \
+		constexpr auto __ParamCount__ = ParamCounterIncrease; \
+		if (!_bGotReg) { \
+			UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCount__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 0, &Type::PropConstructor}); \
+		} \
+		else InternalName = Type::Get(Params[__ParamCount__]); \
+	}
 #define OutVal(Type, InternalName, DisplayName, Description) \
-	FINAny& InternalName = _bGotReg ? Params[__ParamCounter__] : *(FINAny*)nullptr; \
-	if (!_bGotReg) { \
-		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 1, &Type::PropConstructor}); \
-		__ParamCounter__++; \
+	FINAny& InternalName = *(FINAny*)nullptr; \
+	{ \
+		constexpr auto __ParamCount__ = ParamCounterIncrease; \
+		if (!_bGotReg) { \
+			UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCount__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 1, &Type::PropConstructor}); \
+		} \
+		else InternalName = Params[__ParamCount__]; \
 	}
 #define RetVal(Type, InternalName, DisplayName, Description) \
-	FINAny& InternalName = _bGotReg ? Params[__ParamCounter__] : *(FINAny*)nullptr; \
-	if (!_bGotReg) { \
-		UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCounter__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 3, &Type::PropConstructor}); \
-		__ParamCounter__++; \
+	FINAny& InternalName = *(FINAny*)nullptr; \
+	{ \
+		constexpr auto __ParamCount__ = ParamCounterIncrease; \
+		if (!_bGotReg) { \
+			UFINStaticReflectionSource::AddFuncParam(GetUType(), F, __ParamCount__, FFINStaticFuncParamReg{TEXT(#InternalName), FINRefParamLocText(#InternalName, "DisplayName", DisplayName), FINRefParamLocText(#InternalName, "Description", Description), 3, &Type::PropConstructor}); \
+		} \
+		else InternalName = Params[__ParamCount__]; \
 	}
 
 #define FINRefSignalLocText(KeyName, Value) FINRefLocText(*(FString(TName) + TEXT("_") + FString(SName) + TEXT("_") + TEXT(KeyName)), TEXT(Value))
@@ -122,13 +134,15 @@
 #define BeginSignal(InternalName, DisplayName, Description, ...) \
 	namespace SignalClassName(InternalName) { \
 		const int S = __COUNTER__; \
-		int __ParamCounter__ = 0; \
+		struct __ParamCounter__ : ::fameta::counter<__ParamCounter__> {}; \
 		constexpr auto SName = TEXT(#InternalName) ; \
 		FFINStaticGlobalRegisterFunc RegSignal([](){ \
 			UFINStaticReflectionSource::AddSignal(GetUType(), S, FFINStaticSignalReg{TEXT(#InternalName), FINRefSignalLocText("DisplayName", DisplayName), FINRefSignalLocText("Description", Description), GET_MACRO(0, ##__VA_ARGS__, false)});
 #define SignalParam(Type, InternalName, DisplayName, Description) \
-			UFINStaticReflectionSource::AddSignalParam(GetUType(), S, __ParamCounter__, FFINStaticSignalParamReg{TEXT(#InternalName), FINRefSignalParamLocText(#InternalName, "DisplayName", DisplayName), FINRefSignalParamLocText(#InternalName, "Description", Description), &Type::PropConstructor}); \
-			__ParamCounter__++;
+			{ \
+				constexpr auto __ParamCount__ = ParamCounterIncrease; \
+				UFINStaticReflectionSource::AddSignalParam(GetUType(), S, __ParamCount__, FFINStaticSignalParamReg{TEXT(#InternalName), FINRefSignalParamLocText(#InternalName, "DisplayName", DisplayName), FINRefSignalParamLocText(#InternalName, "Description", Description), &Type::PropConstructor}); \
+			}
 #define EndSignal() \
 		}); \
 	};
