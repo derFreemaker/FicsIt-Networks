@@ -1,15 +1,13 @@
 #include "FINLua/LuaGlobalLib.h"
 
-#include "FINLua/LuaClass.h"
-#include "FINLua/LuaComponentAPI.h"
-#include "FINLua/LuaComputerAPI.h"
-#include "FINLua/LuaDebugAPI.h"
-#include "FINLua/LuaEventAPI.h"
+#include "FINLua/Reflection/LuaClass.h"
 #include "FINLua/LuaFuture.h"
-#include "FINLua/LuaObject.h"
-#include "FINLua/LuaRef.h"
-#include "FINLua/LuaStruct.h"
+#include "FINLua/Reflection/LuaObject.h"
+#include "FINLua/Reflection/LuaRef.h"
+#include "FINLua/Reflection/LuaStruct.h"
 #include "FINLuaProcessor.h"
+#include "FINLua/FINLuaModule.h"
+#include "FINLua/LuaPersistence.h"
 #include "Registry/ModContentRegistry.h"
 //#include "tracy/Tracy.hpp"
 //#include "tracy/TracyLua.hpp"
@@ -288,7 +286,7 @@ namespace FINLua {
 	}
 	
 	void setupGlobals(lua_State* L) {
-		PersistSetup("Globals", -2);
+		PersistenceNamespace("Globals");
 
 		lua_register(L, "findClass", luaFindClass_DEPRECATED);
 		PersistGlobal("findClass");
@@ -349,11 +347,10 @@ namespace FINLua {
 		setupStructSystem(L);
 		setupObjectSystem(L);
 		setupClassSystem(L);
-		setupComponentAPI(L);
-		setupEventAPI(L);
-		setupFileSystemAPI(L);
-		setupComputerAPI(L);
-		setupDebugAPI(L);
 		setupFutureAPI(L);
+
+		for (const TSharedRef<FFINLuaModule>& module : FFINLuaModuleRegistry::GetInstance().Modules) {
+			module->SetupModule(L);
+		}
 	}
 }
