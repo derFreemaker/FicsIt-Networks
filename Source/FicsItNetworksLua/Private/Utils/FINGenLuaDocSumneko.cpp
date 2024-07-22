@@ -1,5 +1,6 @@
 ﻿#include "Utils/FINGenLuaDocSumneko.h"
 
+#include <functional>
 #include <optional>
 #include <FINLua/FINLuaModule.h>
 
@@ -492,50 +493,40 @@ FString FINGenLuaSumnekoStruct(FFINReflection &Ref, const UFINStruct *Struct) {
 bool FINGenLuaDocSumneko(UWorld *World, const TCHAR *Command, FOutputDevice &Ar) {
 	if (FParse::Command(&Command, TEXT("FINGenLuaDocSumneko"))) {
 		FFINReflection &Ref = *FFINReflection::Get();
-		FString Documentation;
+		FString Documentation = "\n";
 		Documentation.Append(FINGenLuaSumnekoDocumentationStart);
-
-		// for (const auto& module : FFINLuaModuleRegistry::GetInstance().Modules) {
-		// 	for (const auto& global : module->Globals) {
-		// 		if (global.Value->TypeID() == FINTypeId<FFINLuaFunction>::ID()) {
-		// 			FFINLuaFunction* func = static_cast<FFINLuaFunction*>(global.Value.Get());
-		// 		}
-		// 	}
-		// }
 		
-		{
-			// adding "do" and "end" to get rid of local maximum variables reached
-			int32_t count = 0;
-			for (TPair<UClass*, UFINClass*> const Class : Ref.GetClasses()) {
-				if (count == 0) {
-					Documentation.Append("do\n");
-				}
-
-				Documentation.Append(FINGenLuaSumnekoClass(Ref, Class.Value));
-				count++;
-
-				if (count == 180) {
-					Documentation.Append("\nend\n");
-					count = 0;
-				}
-			}
-			for (TPair<UScriptStruct*, UFINStruct*> const Struct : Ref.GetStructs()) {
-				if (count == 0) {
-					Documentation.Append("do\n");
-				}
-
-				Documentation.Append(FINGenLuaSumnekoStruct(Ref, Struct.Value));
-				count++;
-
-				if (count == 180) {
-					Documentation.Append("\nend\n");
-					count = 0;
-				}
+		// adding "do" and "end" to get rid of local maximum variables reached
+		int32_t count = 0;
+		for (TPair<UClass*, UFINClass*> const Class : Ref.GetClasses()) {
+			if (count == 0) {
+				Documentation.Append("do\n");
 			}
 
-			if (count != 0) {
+			Documentation.Append(FINGenLuaSumnekoClass(Ref, Class.Value));
+			count++;
+
+			if (count == 180) {
 				Documentation.Append("\nend\n");
+				count = 0;
 			}
+		}
+		for (TPair<UScriptStruct*, UFINStruct*> const Struct : Ref.GetStructs()) {
+			if (count == 0) {
+				Documentation.Append("do\n");
+			}
+
+			Documentation.Append(FINGenLuaSumnekoStruct(Ref, Struct.Value));
+			count++;
+
+			if (count == 180) {
+				Documentation.Append("\nend\n");
+				count = 0;
+			}
+		}
+
+		if (count != 0) {
+			Documentation.Append("\nend\n");
 		}
 
 		Documentation.Append(FINGenLuaSumnekoDocumentationEnd);

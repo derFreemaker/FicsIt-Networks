@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 // this is a terible way of doing documentation but currently only way without modifing any additional code for documentation.
-inline const auto FINGenLuaSumnekoDocumentationStart = TEXT(R"(error("I don't know what your misson is. But is file is not meant to be executed in any way. It's a meta file.")
+constexpr auto FINGenLuaSumnekoDocumentationStart = TEXT(R"(error("I don't know what your misson is. But is file is not meant to be executed in any way. It's a meta file.")
 ---@meta
 ---@diagnostic disable
 
@@ -13,7 +13,7 @@ structs = {}
 
 )");
 
-inline const auto MiscDocumentation = TEXT(R"(
+constexpr auto MiscDocumentation = TEXT(R"(
 -- some more FicsIt-Networks things to support more type specific things and also adds documentation for `computer`, `component`, `event` and `filesystem` libraries in FicsIt-Networks (keep in mind this is all written by hand and can maybe not represent all features available)
 
 --- # Not in FicsIt-Networks available #
@@ -78,7 +78,7 @@ function findItem(name) end
 function getItems(...) end
 )");
 
-inline const auto FutureApiDocumentation = TEXT(R"(
+constexpr auto FutureApiDocumentation = TEXT(R"(
 ---@class FIN.Future<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> : { await: (fun(self: FIN.Future<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>) : T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15), get: (fun(self: FIN.Future<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>) : T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15), canGet: (fun(self: FIN.Future<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>) : boolean) }
 
 -- if more than this is needed then some one fucked up the return values
@@ -102,7 +102,7 @@ function Future:canGet()
 end
 )");
 
-inline const auto EventApiDocumentation = TEXT(R"(
+constexpr auto EventApiDocumentation = TEXT(R"(
 --- **FicsIt-Networks Lua Lib:** `event`
 ---
 --- The Event API provides classes, functions and variables for interacting with the component network.
@@ -136,7 +136,7 @@ function event.ignoreAll() end
 function event.clear() end
 )");
 	
-inline const auto ComponentApiDocumentation = TEXT(R"(
+constexpr auto ComponentApiDocumentation = TEXT(R"(
 --- **FicsIt-Networks Lua Lib:** `component`
 ---
 --- The Component API provides structures, functions and signals for interacting with the network itself like returning network components.
@@ -198,7 +198,7 @@ function component.findComponent(type) end
 function component.findComponent(...) end
 )");
 	
-inline const auto ComputerApiDocumentation = TEXT(R"(
+constexpr auto ComputerApiDocumentation = TEXT(R"(
 --- **FicsIt-Networks Lua Lib:** `computer`
 ---
 --- The Computer API provides a interface to the computer owns functionalities.
@@ -294,7 +294,7 @@ function computer.textNotification(text, playerName) end
 function computer.attentionPing(position, playerName) end
 )");
 	
-inline const auto FileSystemApiDocumentationPart1 = TEXT(R"(
+constexpr auto FileSystemApiDocumentationPart1 = TEXT(R"(
 --- **FicsIt-Networks Lua Lib:** `filesystem`
 ---
 --- The filesystem api provides structures, functions and variables for interacting with the virtual file systems.
@@ -371,12 +371,6 @@ function filesystem.exists(path) end
 --- Lists all children of this node. (f.e. items in a folder)
 ---@param path string - path to the filesystem object you want to get the childs from
 ---@return string[] childs - array of string which are the names of the childs
-function filesystem.childs(path) end
-
----@deprecated
---- Lists all children of this node. (f.e. items in a folder)
----@param path string - path to the filesystem object you want to get the childs from
----@return string[] childs - array of string which are the names of the childs
 function filesystem.children(path) end
 
 --- Checks if path refers to a file.
@@ -385,7 +379,7 @@ function filesystem.children(path) end
 function filesystem.isFile(path) end
 )");
 
-inline const auto FileSystemApiDocumentationPart2 = TEXT(R"(
+constexpr auto FileSystemApiDocumentationPart2 = TEXT(R"(
 --- Checks if given path refers to a directory.
 ---@param path string - path you want to check if it refers to a directory
 ---@return boolean isDir - returns true if path refers to a directory
@@ -440,30 +434,30 @@ function filesystem.path(parameter, ...) end
 ---|16 Filename has extension
 ---|32 Ends with a / → refers a directory
 
---- Will be checked for lexical features.
---- Return value which is a bit-flag-register describing those lexical features.
----@param path string - filesystem-path you want to get lexical features from. 
----@return FIN.Filesystem.PathRegister BitRegister - bit-register describing the features of each path
-function filesystem.analyzePath(path) end
-
 --- Each string will be viewed as one filesystem-path and will be checked for lexical features.
 --- Each of those string will then have a integer return value which is a bit-flag-register describing those lexical features.
 ---@param ... string - filesystem-paths you want to get lexical features from.
 ---@return FIN.Filesystem.PathRegister ... - bit-registers describing the features of each path
 function filesystem.analyzePath(...) end
 
---- For given string, returns a bool to tell if string is a valid node (file/folder) name.
----@param node string - node-name you want to check.
----@return boolean isNode - True if node is a valid node-name.
-function filesystem.isNode(node) end
-
---- For each given string, returns a bool to tell if string is a valid node (file/folder) name.
----@param ... string - node-names you want to check.
+--- Returns for each given string, a bool to tell if string is a valid node (file/folder) name.
+---@param ... string - node-paths you want to check.
 ---@return boolean ... - True if the corresponding string is a valid node-name.
 function filesystem.isNode(...) end
+
+---@alias FIN.Filesystem.MetaType
+---|"File" A normal File
+---|"Directory" A directory or folder that can hold multiple nodes.
+---|"Device" A special type of Node that represents a filesystem and can be mounted.
+---|"Unknown" The node type is not known to this utility function.
+
+--- Returns for each given string path, a table that defines contains some meta information about node the string references.
+---@param ... string - paths you want to get meta data from.
+---@return FIN.Filesystem.MetaType ... - The meta data coresponding to the given path.
+function filesystem.meta(...) end
 )");
 
-inline const auto FileApiDocumentation = TEXT(R"(
+constexpr auto FileApiDocumentation = TEXT(R"(
 ---@class FIN.Filesystem.File
 local File = {}
 
@@ -486,5 +480,13 @@ function File:seek(mode, offset) end
 function File:close() end
 )");
 
-const FString FINGenLuaSumnekoDocumentationEnd = FString::Printf(TEXT("%s\n%s\n%s\n%s\n%s\n%s%s\n%s"),
-	MiscDocumentation, FutureApiDocumentation, EventApiDocumentation, ComponentApiDocumentation, ComputerApiDocumentation, FileSystemApiDocumentationPart1, FileSystemApiDocumentationPart2, FileApiDocumentation);
+constexpr auto DebugApiDocumentation = TEXT(R"(
+--- Allows to log the given strings to the Game Log.
+---@param ... string
+function debug.log(...) end
+)");
+
+inline const FString FINGenLuaSumnekoDocumentationEnd = FString::Printf(TEXT("%s\n%s\n%s\n%s\n%s\n%s%s\n%s\n%s"),
+	MiscDocumentation, FutureApiDocumentation, EventApiDocumentation, ComponentApiDocumentation,
+	ComputerApiDocumentation, FileSystemApiDocumentationPart1, FileSystemApiDocumentationPart2,
+	FileApiDocumentation, DebugApiDocumentation);
