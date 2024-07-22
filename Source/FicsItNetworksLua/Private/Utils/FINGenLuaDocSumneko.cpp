@@ -1,5 +1,8 @@
 ﻿#include "Utils/FINGenLuaDocSumneko.h"
 
+#include <optional>
+#include <FINLua/FINLuaModule.h>
+
 #include "Misc/App.h"
 #include "Misc/FileHelper.h"
 #include "Reflection/FINArrayProperty.h"
@@ -145,7 +148,7 @@ FString FINGenLuaSumnekoProperty(FFINReflection &Ref, const FString &Parent,
 	return PropertyDocumentation;
 }
 
-FString FINGenLuaSumnekoOperator(FFINReflection &Ref, const UFINFunction *Op) {
+std::optional<FString> FINGenLuaSumnekoOperator(FFINReflection &Ref, const UFINFunction *Op) {
 	FString OpName = Op->GetInternalName();
 	FString OpTypeSumneko;
 
@@ -199,9 +202,7 @@ FString FINGenLuaSumnekoOperator(FFINReflection &Ref, const UFINFunction *Op) {
 	// }
 
 	else {
-		// this is not the best way to handle the issue but will get reported on github
-		throw new FFINException(
-			TEXT("trying to map unsupported FIN_Operator: ") + OpName + TEXT(" to sumneko operator annotation"));
+		return std::nullopt;
 	}
 
 	FString OpParameter;
@@ -385,7 +386,11 @@ FString FINGenLuaSumnekoClass(FFINReflection &Ref, const UFINClass *Class) {
 	for (const UFINFunction *Func : Class->GetFunctions(false)) {
 		if (Func->GetFunctionFlags() & FIN_Func_MemberFunc) {
 			if (Func->GetInternalName().Contains("FIN_Operator")) {
-				OperatorDocumentation.Append(FINGenLuaSumnekoOperator(Ref, Func));
+				auto SumnekoOperator = FINGenLuaSumnekoOperator(Ref, Func);
+				if (SumnekoOperator) {
+					OperatorDocumentation.Append(*SumnekoOperator);	
+				}
+				
 				continue; // to next function
 			}
 
@@ -438,7 +443,10 @@ FString FINGenLuaSumnekoStruct(FFINReflection &Ref, const UFINStruct *Struct) {
 	for (const UFINFunction *Func : Struct->GetFunctions(false)) {
 		if (Func->GetFunctionFlags() & FIN_Func_MemberFunc) {
 			if (Func->GetInternalName().Contains("FIN_Operator")) {
-				OperatorDocumentation.Append(FINGenLuaSumnekoOperator(Ref, Func));
+				auto SumnekoOperator = FINGenLuaSumnekoOperator(Ref, Func);
+				if (SumnekoOperator) {
+					OperatorDocumentation.Append(*SumnekoOperator);	
+				}
 				continue; // to next function
 			}
 
@@ -487,6 +495,14 @@ bool FINGenLuaDocSumneko(UWorld *World, const TCHAR *Command, FOutputDevice &Ar)
 		FString Documentation;
 		Documentation.Append(FINGenLuaSumnekoDocumentationStart);
 
+		// for (const auto& module : FFINLuaModuleRegistry::GetInstance().Modules) {
+		// 	for (const auto& global : module->Globals) {
+		// 		if (global.Value->TypeID() == FINTypeId<FFINLuaFunction>::ID()) {
+		// 			FFINLuaFunction* func = static_cast<FFINLuaFunction*>(global.Value.Get());
+		// 		}
+		// 	}
+		// }
+		
 		{
 			// adding "do" and "end" to get rid of local maximum variables reached
 			int32_t count = 0;
