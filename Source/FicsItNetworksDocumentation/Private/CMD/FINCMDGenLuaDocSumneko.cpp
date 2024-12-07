@@ -91,7 +91,7 @@ function getItems(...) end
 ---@param seconds number
 function sleep(seconds) end
 
----@param func function Wraps the given thread/coroutine in a Lua-Future
+---@param func function Wraps the given function in a Lua-Future
 ---@return FIN.Future
 function async(func) end
 
