@@ -302,13 +302,13 @@ function component.findComponent(query) end
 function component.findComponent(...) end
 
 --- Searches the component network for components with the given type.
----@param type Engine.Object
+---@param type FIN.Class
 ---@return FIN.UUID[] UUIDs
 function component.findComponent(type) end
 
 --- Searches the component network for components with the given type.
 --- You can pass multiple parameters and each parameter will be handled separately and returns a corresponding return value.
----@param ... Engine.Object - classes to search for
+---@param ... FIN.Class - classes to search for
 ---@return FIN.UUID[] ... - UUIDs
 function component.findComponent(...) end
 )");
@@ -989,7 +989,7 @@ function File:close() end
 
 		FString ClassGlobalClassesDocumentation = FString::Printf(
 			TEXT("---@class FIN.classes.%s : %s\nclasses.%s = nil\n"),
-			*ClassTypeName,
+			*Class->GetInternalName(),
 			*ClassTypeName,
 			*Class->GetInternalName()
 		);
@@ -1033,7 +1033,7 @@ function File:close() end
 		);
 
 		FString StructGlobalStructsDocumentation = FString::Printf(
-			TEXT("---@class FIN.structs.%s : %s\n"), *StructTypeName, *StructTypeName);
+			TEXT("---@class FIN.structs.%s : %s\n"), *Struct->GetInternalName(), *StructTypeName);
 		if (Struct->GetStructFlags() & FIR_Struct_Constructable) {
 			FString ConstructorCallSignature = TEXT("{");
 			for (int i = 0; i < PropertyTypes.Num(); ++i) {
