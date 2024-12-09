@@ -102,6 +102,8 @@ function debug.log(...) end
 )");
 
 	inline const auto FutureApiDocumentation = TEXT(R"(
+--- **FicsIt-Networks Lua Lib:** `future`
+---
 ---@class FIN.Future
 local Future = {}
 
@@ -400,10 +402,10 @@ function computer.isPromoted() end
 ---|3 Error
 ---|4 Fatal
 
+--- Allows you to print a log message to the computers log with the given log verbosity.
 ---@param verbosity FIN.LogEntry.Verbosity
----@param format string
----@param ... any
-function computer.log(verbosity, format, ...) end
+---@param message string
+function computer.log(verbosity, message) end
 
 --- Field containing a reference to the Media Subsystem.
 ---@type FIN.FINMediaSubsystem
@@ -570,6 +572,7 @@ local File = {}
 function File:write(data) end
 
 ---@param length integer
+---@return string | nil data
 function File:read(length) end
 
 ---@alias FIN.Filesystem.File.SeekMode
