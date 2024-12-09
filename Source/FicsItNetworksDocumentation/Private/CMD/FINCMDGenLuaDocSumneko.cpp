@@ -465,12 +465,6 @@ function filesystem.exists(path) end
 --- Lists all children of this node. (f.e. items in a folder)
 ---@param path string - path to the filesystem object you want to get the childs from
 ---@return string[] childs - array of string which are the names of the childs
-function filesystem.childs(path) end
-
----@deprecated
---- Lists all children of this node. (f.e. items in a folder)
----@param path string - path to the filesystem object you want to get the childs from
----@return string[] childs - array of string which are the names of the childs
 function filesystem.children(path) end
 
 --- Checks if path refers to a file.
