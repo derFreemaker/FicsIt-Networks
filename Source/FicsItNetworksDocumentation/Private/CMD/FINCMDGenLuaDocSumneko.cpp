@@ -421,12 +421,41 @@ computer.media = nil
 ---@class FIN.Filesystem.Api
 filesystem = {}
 
+--- Trys to mount the system DevDevice to the given location.
+--- The DevDevice is special Device holding DeviceNodes for all filesystems added to the system. (like TmpFS and drives). It is unmountable as well as getting mounted a seccond time.
+---@param path string path to the mountpoint were the dev device should get mounted to
+---@return boolean success returns if it was able to mount the DevDevice
+function filesystem.initFileSystem(path) end
+
+---@alias FIN.Filesystem.FileSystem.Type
+---|"tmpfs" A temporary filesystem only existing at runtime in the memory of your computer. All data will be lost when the system stops.
+
+--- Trys to create a new file system of the given type with the given name.
+--- The created filesystem will be added to the system DevDevice.
+---@param type FIN.Filesystem.FileSystem.Type the type of the new filesystem
+---@param name string the name of the new filesystem you want to create
+---@return boolean success returns true if it was able to create the new filesystem
+function filesystem.makeFileSystem(type, name) end
+
+--- Tries to remove the filesystem with the given name from the system DevDevice.
+--- All mounts of the device will run invalid.
+---@param name string the name of the new filesystem you want to remove
+---@return boolean success returns true if it was able to remove the new filesystem
+function filesystem.removeFileSystem(name) end
+
 ---@alias FIN.Filesystem.File.Openmode
 ---|"r" read only -> file stream can just read from file. If file doesn’t exist, will return nil
 ---|"w" write -> file stream can read and write creates the file if it doesn’t exist
 ---|"a" end of file -> file stream can read and write cursor is set to the end of file
 ---|"+r" truncate -> file stream can read and write all previous data in file gets dropped
+---|"+w" write and read -> file stream can read and wirte all previous data gets dropped
 ---|"+a" append -> file stream can read the full file but can only write to the end of the existing file
+---|"rb" read only (binary mode)
+---|"wb" write (binary mode)
+---|"ab" end of file (binary mode)
+---|"+rb" truncate (binary mode)
+---|"+wb" write and read (binary mode)
+---|"+ab" append (binary mode)
 
 --- Opens a file-stream and returns it as File-table.
 ---@param path string
