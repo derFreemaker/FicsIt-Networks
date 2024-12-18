@@ -1,5 +1,6 @@
 ﻿#include "FicsItNetworksDocumentation.h"
 #include "FicsItReflection.h"
+#include "FINComputerModule.h"
 #include "Package.h"
 #include "Paths.h"
 #include "FINLua/FINLuaModule.h"
@@ -102,8 +103,6 @@ function debug.log(...) end
 )");
 
 	inline const auto FutureApiDocumentation = TEXT(R"(
---- **FicsIt-Networks Lua Lib:** `future`
----
 ---@class FIN.Future
 local Future = {}
 
@@ -111,7 +110,8 @@ local Future = {}
 ---@return any ...
 function Future:get() end
 
----@return boolean success, number timeout
+---@return boolean success
+---@return number timeout
 function Future:poll() end
 
 --- Waits for the future to finish processing and returns the result.
@@ -635,7 +635,7 @@ function File:close() end
 			if (NamePart.Equals(TEXT("Script"))) {
 				continue; // check next name part
 			}
-			
+
 			// we only want the the first not filtered out name should be the mod name
 			if (NamePart.Equals(TEXT("CoreUObject"))) {
 				BasePackageName += TEXT("Engine.");
@@ -729,6 +729,55 @@ function File:close() end
 			Str.Append(TEXT("--- ") + Line + TEXT("<br>\n"));
 		}
 		Str.Append(TEXT("--- ") + Description + TEXT("\n"));
+	}
+
+	FString FINGenLuaSumnekoFutureIdentifier(const FString &TypeIdentifier, const FString &FunctionName) {
+		return FString::Printf(TEXT("Future_%s_%s"), *TypeIdentifier, *FunctionName);
+	}
+
+	FString FINGenLuaSumnekoFuture(FFicsItReflectionModule &Ref, const FString &FutureIdentifier,
+	                               const TArray<UFIRProperty*> &Properties) {
+		FString FutureClass = FString::Printf(
+			TEXT("---@class FIN.%s\nlocal %s = {}\n\n"), *FutureIdentifier, *FutureIdentifier);
+
+		FString FutureReturnParameter;
+		for (const UFIRProperty *Prop : Properties) {
+			EFIRPropertyFlags Flags = Prop->GetPropertyFlags();
+			if (!(Flags & EFIRPropertyFlags::FIR_Prop_Param)) {
+				continue;
+			}
+
+			if (Flags & EFIRPropertyFlags::FIR_Prop_OutParam) {
+				FutureReturnParameter.Appendf(
+					TEXT("---@return %s %s %s\n"),
+					*FINGenLuaSumnekoGetType(Ref, Prop),
+					*Prop->GetInternalName(),
+					*FormatDescription(Prop->GetDescription().ToString()));
+			}
+		}
+		if (FutureReturnParameter.IsEmpty()) {
+			return TEXT("");
+		}
+
+		FString FutureGet = FString::Printf(
+			TEXT("%sfunction %s:get() end\n\n"),
+			*FutureReturnParameter,
+			*FutureIdentifier);
+
+		FString FuturePoll = FString::Printf(
+			TEXT("---@return boolean success\n---@return number timeout\nfunction %s:poll() end\n\n"),
+			*FutureIdentifier);
+
+		FString FutureAwait = FString::Printf(
+			TEXT("---@async\n%sfunction %s:await() end\n\n"),
+			*FutureReturnParameter,
+			*FutureIdentifier);
+
+		FString FutureCanGet = FString::Printf(
+			TEXT("---@return boolean isDone\nfunction %s:canGet() end\n\n"),
+			*FutureIdentifier);
+
+		return FString::Printf(TEXT("%s%s%s%s%s"), *FutureClass, *FutureGet, *FuturePoll, *FutureAwait, *FutureCanGet);
 	}
 
 	FString FINGenLuaSumnekoProperty(FFicsItReflectionModule &Ref, const FString &Parent,
@@ -853,11 +902,27 @@ function File:close() end
 
 	FString FINGenLuaSumnekoFunction(FFicsItReflectionModule &Ref, const FString &Parent,
 	                                 const UFIRFunction *Func) {
-		FString FunctionDocumentation = "\n";
-
-		FINGenLuaSumnekoDescription(FunctionDocumentation, Func->GetDescription().ToString());
+		FString FunctionDocumentation;
+		FString ParamDocumentation;
+		FString ReturnDocumentation;
+		FString ParamList;
 
 		const EFIRFunctionFlags funcFlags = Func->GetFunctionFlags();
+
+		bool FutureReturn = !(funcFlags & FIR_Func_RT_Parallel);
+		if (FutureReturn) {
+			FString FutureIdentifier = FINGenLuaSumnekoFutureIdentifier(Parent, Func->GetInternalName());
+			FString FutureDocumentation = FINGenLuaSumnekoFuture(Ref, FutureIdentifier, Func->GetParameters());
+
+			if (!FutureDocumentation.IsEmpty()) {
+				FunctionDocumentation.Append(FutureDocumentation);
+				ReturnDocumentation.Appendf(
+					TEXT("---@return FIN.%s\n"),
+					*FutureIdentifier);
+			}
+		}
+
+		FINGenLuaSumnekoDescription(FunctionDocumentation, Func->GetDescription().ToString());
 		FINGenLuaSumnekoDescription(FunctionDocumentation, TEXT("### Flags:"));
 
 		if (funcFlags & FIR_Func_RT_Sync) {
@@ -876,9 +941,6 @@ function File:close() end
 			                            TEXT("* Runtime Asynchronous - Can be changed anytime."));
 		}
 
-		FString ParamDocumentation;
-		FString ReturnDocumentation;
-		FString ParamList;
 		for (const UFIRProperty *Prop : Func->GetParameters()) {
 			const EFIRPropertyFlags Flags = Prop->GetPropertyFlags();
 
@@ -886,7 +948,7 @@ function File:close() end
 				continue; // skip prop
 			}
 
-			if (Flags & FIR_Prop_OutParam) {
+			if (Flags & FIR_Prop_OutParam && !FutureReturn) {
 				ReturnDocumentation.Appendf(TEXT("---@return %s %s %s\n"),
 				                            *FINGenLuaSumnekoGetType(Ref, Prop),
 				                            *Prop->GetInternalName(),
@@ -909,7 +971,7 @@ function File:close() end
 
 		if (funcFlags & FIR_Func_VarArgs) {
 			ParamDocumentation.Append(TEXT("---@param ... any @additional arguments as described\n"));
-			
+
 			if (ParamList.Len() > 0) {
 				ParamList.Append(", ");
 			}
@@ -928,7 +990,7 @@ function File:close() end
 			                *Func->GetInternalName(),
 			                *ParamList));
 
-		return FunctionDocumentation;
+		return FString::Printf(TEXT("\n%s"), *FunctionDocumentation);
 	}
 
 	FString FINGenLuaSumnekoSignal(FFicsItReflectionModule &Ref, const FString &Parent,
@@ -1017,9 +1079,13 @@ function File:close() end
 		);
 
 		FString ClassGlobalClassesDocumentation = FString::Printf(
-			TEXT("---@class FIN.classes.%s : %s\nclasses.%s = nil\n"),
+			TEXT("---@class FIN.classes.%s : FIN.Class, %s"),
 			*Class->GetInternalName(),
-			*ClassTypeName,
+			*ClassTypeName
+		);
+
+		ClassGlobalClassesDocumentation.Appendf(
+			TEXT("\nclasses.%s = nil\n"),
 			*Class->GetInternalName()
 		);
 
@@ -1062,7 +1128,7 @@ function File:close() end
 		);
 
 		FString StructGlobalStructsDocumentation = FString::Printf(
-			TEXT("---@class FIN.structs.%s : %s\n"), *Struct->GetInternalName(), *StructTypeName);
+			TEXT("---@class FIN.structs.%s : FIN.Struct\n"), *Struct->GetInternalName());
 		if (Struct->GetStructFlags() & FIR_Struct_Constructable) {
 			FString ConstructorCallSignature = TEXT("{");
 			for (int i = 0; i < PropertyTypes.Num(); ++i) {

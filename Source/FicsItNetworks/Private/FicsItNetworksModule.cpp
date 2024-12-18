@@ -49,10 +49,12 @@ void AddRedirects(FString FromParent, FString ToParent, const ClassChange& Chang
 
 void InventorSlot_CreateWidgetSlider_Hook(FBlueprintHookHelper& HookHelper) {
 	UUserWidget* self = Cast<UUserWidget>(HookHelper.GetContext());
-	UObject* InventorySlot = HookHelper.GetContext();
-	TObjectPtr<UObject>* WidgetPtr = HookHelper.GetOutVariablePtr<FObjectProperty>();
-	UUserWidget* Widget = Cast<UUserWidget>(WidgetPtr->Get());
-	UVerticalBox* MenuList = Cast<UVerticalBox>(Widget->GetWidgetFromName("VerticalBox_0"));
+	// UObject* InventorySlot = HookHelper.GetContext();
+	// TObjectPtr<UObject>* WidgetPtr = HookHelper.GetOutVariablePtr<FObjectProperty>();
+	// UUserWidget* Widget = Cast<UUserWidget>(WidgetPtr->Get());
+	UVerticalBox* MenuList = Cast<UVerticalBox>(self->GetWidgetFromName("VerticalBox_0"));
+
+	// TObjectPtr<UObject>* WidgetPtr = HookHelper.GetOutVariableHelper()->GetVariablePtr<FObjectProperty>(TEXT("VerticalBox_0"));
 
 	if (UFINCopyUUIDButton::GetFileSystemStateFromSlotWidget(self).IsValid()) {
 		UFINCopyUUIDButton* UUIDButton = NewObject<UFINCopyUUIDButton>(MenuList->GetOuter());
@@ -70,7 +72,8 @@ void InventorSlot_CreateWidgetSlider_Hook(FBlueprintHookHelper& HookHelper) {
 void ResearchNodeInfoWidget_CanResearch_Hook(FBlueprintHookHelper& HookHelper) {
 	UObject* Widget = HookHelper.GetContext();
 	TSubclassOf<UFGSchematic> schematic = FReflectionHelper::GetObjectPropertyValue<UClass>(Widget, TEXT("mSchematic"));
-	bool& canResearch = *HookHelper.GetOutVariablePtr<TProperty<bool, FBoolProperty>>(TEXT("Can Research"));
+	bool& canResearch = *HookHelper.GetOutVariableHelper()->GetVariablePtr<TProperty<bool, FBoolProperty>>(TEXT("Can Research"));
+	// bool& canResearch = *HookHelper.GetOutVariablePtr<TProperty<bool, FBoolProperty>>(TEXT("Can Research"));
 	canResearch = canResearch && UFGSchematic::AreSchematicDependenciesMet(schematic, Widget);;
 }
 
