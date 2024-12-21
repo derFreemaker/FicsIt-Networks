@@ -229,11 +229,32 @@ local event_queue = {}
 ---@return any ...
 function event_queue:pull(timeout) end
 
---- Returns a Future that resolves when a signal got added to the queue that matches the given Event Filter.
----@param filter FIN.EventFilter
----@return FIN.Future
-function event_queue:wait_for(filter) end
+---@class FIN.Future_event_wait_for
+local Future_event_wait_for = {}
 
+---@return string event
+---@return Engine.Object sender
+---@return any ...
+function Future_event_wait_for:get() end
+
+---@return boolean success
+---@return number timeout
+function Future_event_wait_for:poll() end
+
+---@async
+---@return string event
+---@return Engine.Object sender
+---@return any ...
+function Future_event_wait_for:await() end
+
+---@return boolean isDone
+function Future_event_wait_for:canGet() end
+
+--- Returns a Future that resolves when a signal got polled that matches the given Event Filter.
+---@param filter FIN.EventFilter
+---@return FIN.Future_event_wait_for
+function event.wait_for(filter) end
+a
 --- Creates a new event queue.
 --- When this variable closes or gets garbage collected, it will stop receiving signals.
 ---@param filter FIN.EventFilter
