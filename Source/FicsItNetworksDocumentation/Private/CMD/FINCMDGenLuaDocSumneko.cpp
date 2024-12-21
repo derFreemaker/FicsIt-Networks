@@ -201,15 +201,12 @@ function event.clear() end
 ---|boolean
 ---|number
 ---|string
----|Engine.Object
----|FIN.Struct
----|FIN.Class
 ---|FIN.EventFilter.Supported_Types[]
 
 ---@class FIN.EventFilter.Config
 ---@field event string | string[] | nil
 ---@field sender Engine.Object | Engine.Object[] | nil
----@field values table<string, FIN.EventFilter.Supported_Types>
+---@field values table<string, FIN.EventFilter.Supported_Types> | nil
 
 --- Creates an Event filter expression.
 ---@param filter FIN.EventFilter.Config
