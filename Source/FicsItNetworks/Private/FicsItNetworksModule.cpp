@@ -266,6 +266,9 @@ void FFicsItNetworksModule::StartupModule(){
 	FIN_CoreRedirect(Type_Class,
 		"/FicsItNetworks/Computer/Modules/CPU/CPU_Lua.CPU_Lua_C",
 		"/FicsItNetworks/Buildings/Computer/Modules/CPU_Lua/Build_CPU_Lua.Build_CPU_Lua_C");
+	FIN_CoreRedirect(Type_Class,
+		"/FicsItNetworks/Computer/Modules/CPU/CPU_Lua_Opt.CPU_Lua_Opt_C",
+		"/FicsItNetworks/Buildings/Computer/Modules/CPU_Lua/Build_CPU_Lua_Opt.Build_CPU_Lua_Opt_C");
 	// End v0.3.21
 
 	AddRedirects(TEXT(""), TEXT(""),

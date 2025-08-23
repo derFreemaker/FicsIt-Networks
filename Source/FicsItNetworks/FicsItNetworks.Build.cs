@@ -29,7 +29,7 @@ public class FicsItNetworks : ModuleRules
             "ApplicationCore",
             "Json",
             "Vorbis",
-            "Http",
+            "HTTP",
             "OnlineSubsystemUtils",
             "ReplicationGraph",
             "FactoryGame",

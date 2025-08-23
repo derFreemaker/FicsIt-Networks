@@ -55,3 +55,5 @@ PRAGMA_POP_PLATFORM_DEFAULT_PACKING
 #include "Windows/HideWindowsPlatformAtomics.h"
 #include "Windows/HideWindowsPlatformTypes.h"
 #endif
+
+LUA_API int luaB_coresume (lua_State *L);
