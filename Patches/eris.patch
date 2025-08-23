@@ -1,0 +1,150 @@
+diff --git a/src/lcorolib.c b/src/lcorolib.c
+index a9d1e5b..ffb0a8a 100644
+--- a/src/lcorolib.c
++++ b/src/lcorolib.c
+@@ -53,7 +53,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
+ }
+ 
+ 
+-static int luaB_coresume (lua_State *L) {
++LUA_API int luaB_coresume (lua_State *L) {
+   lua_State *co = getco(L);
+   int r;
+   r = auxresume(L, co, lua_gettop(L) - 1);
+@@ -114,6 +114,22 @@ static int luaB_yield (lua_State *L) {
+ }
+ 
+ 
++static int luaB_yieldafterinstructions (lua_State *L)
++{
++  if (lua_type(L, 1) == LUA_TTHREAD)
++  {
++    lua_State *co = lua_tothread(L, 1);
++    long long instructions = luaL_checkinteger(L, 2);
++    lua_yieldafterinstructions(co, instructions);
++    return 0;
++  }
++  
++  long long instructions = luaL_checkinteger(L, 1);
++  lua_yieldafterinstructions(L, instructions);
++  return 0;
++}
++
++
+ #define COS_RUN		0
+ #define COS_DEAD	1
+ #define COS_YIELD	2
+@@ -196,6 +212,7 @@ static const luaL_Reg co_funcs[] = {
+   {"status", luaB_costatus},
+   {"wrap", luaB_cowrap},
+   {"yield", luaB_yield},
++  {"yieldafterinstructions", luaB_yieldafterinstructions},
+   {"isyieldable", luaB_yieldable},
+   {"close", luaB_close},
+   {NULL, NULL}
+diff --git a/src/ldo.c b/src/ldo.c
+index ea05295..27d1308 100644
+--- a/src/ldo.c
++++ b/src/ldo.c
+@@ -903,6 +903,18 @@ LUA_API int lua_yieldk (lua_State *L, int nresults, lua_KContext ctx,
+ }
+ 
+ 
++LUA_API void lua_yieldafterinstructions (lua_State *L, long long instructions)
++{
++  L->yieldafterinstructions = instructions;
++}
++
++
++LUA_API void lua_yieldafterinstruction (lua_State *L, int shouldyield)
++{
++  G(L)->yieldafterinstruction = shouldyield;
++}
++
++
+ /*
+ ** Auxiliary structure to call 'luaF_close' in protected mode.
+ */
+diff --git a/src/lstate.c b/src/lstate.c
+index 7fefacb..f22f802 100644
+--- a/src/lstate.c
++++ b/src/lstate.c
+@@ -263,6 +263,7 @@ static void preinit_thread (lua_State *L, global_State *g) {
+   L->status = LUA_OK;
+   L->errfunc = 0;
+   L->oldpc = 0;
++  L->yieldafterinstructions = 0;
+ }
+ 
+ 
+@@ -403,6 +404,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
+   g->gcstepsize = LUAI_GCSTEPSIZE;
+   setgcparam(g->genmajormul, LUAI_GENMAJORMUL);
+   g->genminormul = LUAI_GENMINORMUL;
++  g->yieldafterinstruction = 0;
+   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
+   if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {
+     /* memory allocation error: free partial state */
+diff --git a/src/lstate.h b/src/lstate.h
+index 007704c..7e765b8 100644
+--- a/src/lstate.h
++++ b/src/lstate.h
+@@ -300,6 +300,7 @@ typedef struct global_State {
+   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
+   lua_WarnFunction warnf;  /* warning function */
+   void *ud_warn;         /* auxiliary data to 'warnf' */
++  int yieldafterinstruction;
+ } global_State;
+ 
+ 
+@@ -329,6 +330,7 @@ struct lua_State {
+   int basehookcount;
+   int hookcount;
+   volatile l_signalT hookmask;
++  long long yieldafterinstructions;
+ };
+ 
+ 
+diff --git a/src/lua.h b/src/lua.h
+index f050dac..bf1595a 100644
+--- a/src/lua.h
++++ b/src/lua.h
+@@ -308,6 +308,9 @@ LUA_API int (lua_dump) (lua_State *L, lua_Writer writer, void *data, int strip);
+ */
+ LUA_API int  (lua_yieldk)     (lua_State *L, int nresults, lua_KContext ctx,
+                                lua_KFunction k);
++LUA_API void  (lua_yieldafterinstructions) (lua_State *L, long long instructions);
++/// yields lua universe the after the instruction 
++LUA_API void  (lua_yieldafterinstruction) (lua_State *L, int shoudyield);
+ LUA_API int  (lua_resume)     (lua_State *L, lua_State *from, int narg,
+                                int *nres);
+ LUA_API int  (lua_status)     (lua_State *L);
+diff --git a/src/lvm.c b/src/lvm.c
+index fcd24e1..9908577 100644
+--- a/src/lvm.c
++++ b/src/lvm.c
+@@ -1893,6 +1893,24 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
+         vmbreak;
+       }
+     }
++    if (G(L)->yieldafterinstruction) {
++      lua_yield(L, 0);
++
++      ci->u.l.savedpc = pc + 1; /* save next instruction point */
++      if (!isIT(*(ci->u.l.savedpc - 1)))  /* top not being used? */
++        L->top.p = ci->top.p;  /* correct top */
++      ci->callstatus |= CIST_HOOKYIELD;  /* mark that it yielded */
++      luaD_throw(L, LUA_YIELD);
++    }
++    if (L->yieldafterinstructions && !--L->yieldafterinstructions) {
++      lua_yield(L, 0);
++
++      ci->u.l.savedpc = pc + 1; /* save next instruction point */
++      if (!isIT(*(ci->u.l.savedpc - 1)))  /* top not being used? */
++        L->top.p = ci->top.p;  /* correct top */
++      ci->callstatus |= CIST_HOOKYIELD;  /* mark that it yielded */
++      luaD_throw(L, LUA_YIELD);
++    }
+   }
+ }
+ 
