@@ -8,7 +8,8 @@ public class Eris : ModuleRules
 		CppStandard = CppStandardVersion.Cpp20;
 		bEnableExceptions = true;
 		bUseRTTI = true;
-
+		PrivatePCHHeaderFile = "Public/FINLua.h";
+		
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core"
 		});

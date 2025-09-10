@@ -36,6 +36,11 @@
 			"Type": "Runtime",
 			"LoadingPhase": "PostDefault"
 		},
+        {
+            "Name": "FicsItNetworksLuaRewrite",
+            "Type": "Runtime",
+            "LoadingPhase": "PostDefault"
+        },
 		{
 			"Name": "FicsItNetworksDocumentation",
 			"Type": "Runtime",

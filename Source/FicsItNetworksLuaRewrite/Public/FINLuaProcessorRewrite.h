@@ -1,28 +1,31 @@
 #pragma once
 
-#include "FINLuaProcessor.h"
-
+#include "CoreMinimal.h"
+#include "AsyncWork.h"
 #include "Optional.h"
-#include "FINLuaRuntimeLight.h"
 
-#include "FINLuaProcessorLight.generated.h"
+#include "FicsItFileSystem/Listener.h"
+#include "FicsItKernel/Processor/Processor.h"
+#include "FINLuaRuntimeRewrite.h"
+
+#include "FINLuaProcessorRewrite.generated.h"
 
 UCLASS()
-class FICSITNETWORKSLUA_API UFINLuaProcessorLight : public UFINKernelProcessor {
+class FICSITNETWORKSLUAREWRITE_API UFINLuaProcessorRewrite : public UFINKernelProcessor {
 	GENERATED_BODY()
 	
-	UPROPERTY()
-	FFINLuaReferenceCollector ReferenceCollector;
+//	UPROPERTY()
+//	FFINLuaReferenceCollector ReferenceCollector;
 	
-	FFINLuaRuntimeLight Runtime = {*this};
-	FFINLuaComponentNetworkAccessDelegates ComponentNetwork;
-	FFINLuaEventSystem EventSystem;
+	FFINLuaRuntimeRewrite Runtime = {*this};
+//	FFINLuaComponentNetworkAccessDelegates ComponentNetwork;
+//	FFINLuaEventSystem EventSystem;
 
 public:
-	UPROPERTY(SaveGame)
-	FFINLuaRuntimePersistenceState RuntimeState;
+//	UPROPERTY(SaveGame)
+//	FFINLuaRuntimePersistenceState RuntimeState;
 
-	UFINLuaProcessorLight();
+	UFINLuaProcessorRewrite();
 
 	// Begin UObject
 	virtual void BeginDestroy() override;

@@ -8,16 +8,20 @@
 #include "Memory/MemoryArena.h"
 
 #include "FINQueueLock.h"
-#include "LuaUtil.h"
+#include "FINLuaUtil.h"
+
+struct FICSITNETWORKSLUAREWRITE_API FFINLuaPanic {
+	FString Message;
+};
 
 #define FIN_LUA_SIMULATE_TICK 0
 
 class UFINKernelSystem;
-struct FFINLuaRuntimeLight;
+struct FFINLuaRuntimeRewrite;
 
-struct FICSITNETWORKSLUA_API FFINLuaTerminate {};
+struct FICSITNETWORKSLUAREWRITE_API FFINLuaTerminate {};
 
-struct FICSITNETWORKSLUA_API FFINLuaThread : public FRunnable, public FSingleThreadRunnable {
+struct FICSITNETWORKSLUAREWRITE_API FFINLuaThread : public FRunnable, public FSingleThreadRunnable {
 	enum class EState {
 		Uninitialized,
 		Waiting,
@@ -30,14 +34,14 @@ struct FICSITNETWORKSLUA_API FFINLuaThread : public FRunnable, public FSingleThr
 	};
 
 	friend void TickHookF(lua_State *L, lua_Debug *Ar);
-	friend struct FFINLuaRuntimeLight;
+	friend struct FFINLuaRuntimeRewrite;
 	
 	static FFINLuaThread& GetFromLuaState(lua_State *L) {
 		return **static_cast<FFINLuaThread**>(lua_getextraspace(L));
 	}
 
 private:
-	FFINLuaRuntimeLight *const Runtime;
+	FFINLuaRuntimeRewrite *const Runtime;
 	FMemoryArena *Arena;
 
 	lua_State *L = nullptr;
@@ -52,7 +56,7 @@ private:
 	TOptional<FString> ErrorMessage;
 	TOptional<FString>& Code;
 public:
-	FFINLuaThread(FFINLuaRuntimeLight *const Runtime, FMemoryArena *Arena, TOptional<FString>& Code) : Runtime(Runtime), Arena(Arena), Code(Code) {
+	FFINLuaThread(FFINLuaRuntimeRewrite *const Runtime, FMemoryArena *Arena, TOptional<FString>& Code) : Runtime(Runtime), Arena(Arena), Code(Code) {
 		// we unlock in each tick so that when we do an action which needs to be sync with the factory tick we can align the thread
 		SyncMutex.Lock();
 	}
@@ -88,7 +92,7 @@ private:
 	// FSingleThreadRunnable
 
 public:
-	FFINLuaRuntimeLight* GetRuntime() const;
+	FFINLuaRuntimeRewrite* GetRuntime() const;
 
 	EState GetStatus();
 	const TOptional<FString>& GetErrorMessage();
@@ -96,10 +100,10 @@ public:
 	void FactoryTick();
 };
 
-class UFINLuaProcessorLight;
+class UFINLuaProcessorRewrite;
 
-struct FICSITNETWORKSLUA_API FFINLuaRuntimeLight {
-	static FFINLuaRuntimeLight& GetFromLuaState(lua_State *L) {
+struct FICSITNETWORKSLUAREWRITE_API FFINLuaRuntimeRewrite {
+	static FFINLuaRuntimeRewrite& GetFromLuaState(lua_State *L) {
 		return *FFINLuaThread::GetFromLuaState(L).GetRuntime();
 	}
 
@@ -110,15 +114,15 @@ private:
 	FFINLuaThread Thread;
 	FRunnableThread *RunnableThread = nullptr;
 
-	UFINLuaProcessorLight &Processor;
+	UFINLuaProcessorRewrite &Processor;
 
 	TOptional<FString> Code;
 public:
-	FFINLuaRuntimeLight(UFINLuaProcessorLight &Processor) : Thread(this, &Arena, Code), Processor(Processor) {}
-	~FFINLuaRuntimeLight();
+	FFINLuaRuntimeRewrite(UFINLuaProcessorRewrite &Processor) : Thread(this, &Arena, Code), Processor(Processor) {}
+	~FFINLuaRuntimeRewrite();
 
 private:
-	UE_NONCOPYABLE(FFINLuaRuntimeLight)
+	UE_NONCOPYABLE(FFINLuaRuntimeRewrite)
 
 public:
 	UFINKernelSystem& GetKernel() const;

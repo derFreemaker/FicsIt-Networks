@@ -1,12 +1,10 @@
-﻿#include "FINLua/FINLuaRuntimeLight.h"
+﻿#include "FINLuaRuntimeRewrite.h"
 
 #include <string>
 
 #include "FicsItLogLibrary.h"
-#include "FicsItNetworksLuaModule.h"
 #include "FILLogContainer.h"
-#include "FINLuaProcessorLight.h"
-#include "FINLuaRuntime.h"
+#include "FINLuaProcessorRewrite.h"
 
 void TickHookF(lua_State *L, lua_Debug *Ar) {
 	auto &Thread = FFINLuaThread::GetFromLuaState(L);
@@ -128,7 +126,7 @@ int FFINLuaThread::ResumeLua() {
 	return Status;
 }
 
-FFINLuaRuntimeLight* FFINLuaThread::GetRuntime() const {
+FFINLuaRuntimeRewrite* FFINLuaThread::GetRuntime() const {
 	return Runtime;
 }
 
@@ -155,7 +153,7 @@ void LuaWarnF(void *Ud, const char *Msg, int ToCont) {
 
 int LuaPanicF(lua_State *L) {
 	const FString Message = FINLua::luaFIN_toFString(L, -1);
-	UE_LOG(LogFicsItNetworksLua, Warning, TEXT("Lua Thread: panic with message: %s"), *Message);
+	UE_LOG(LogFicsItNetworksLuaRewrite, Warning, TEXT("Lua Thread: panic with message: %s"), *Message);
 	throw FFINLuaPanic(Message);
 }
 
@@ -193,7 +191,7 @@ int LuaPrint(lua_State *L) {
 	if (log.length() > 0)
 		log = log.erase(log.length() - 1);
 
-	const auto &Runtime = FFINLuaRuntimeLight::GetFromLuaState(L);
+	const auto &Runtime = FFINLuaRuntimeRewrite::GetFromLuaState(L);
 	Runtime.GetKernel().GetLog()->PushLogEntry(FIL_Verbosity_Info, UTF8_TO_TCHAR(log.c_str()));
 
 	return 0;
@@ -294,24 +292,24 @@ void FFINLuaThread::Tick() {
 	ResumeLua();
 }
 
-FFINLuaRuntimeLight::~FFINLuaRuntimeLight() {
+FFINLuaRuntimeRewrite::~FFINLuaRuntimeRewrite() {
 	Stop();
 }
 
-UFINKernelSystem& FFINLuaRuntimeLight::GetKernel() const {
+UFINKernelSystem& FFINLuaRuntimeRewrite::GetKernel() const {
 	return *Processor.GetKernel();
 }
 
-FFINLuaThread::EState FFINLuaRuntimeLight::GetStatus() {
+FFINLuaThread::EState FFINLuaRuntimeRewrite::GetStatus() {
 	return Thread.GetStatus();
 }
 
-void FFINLuaRuntimeLight::SetCode(const TOptional<FString> &NewCode) {
+void FFINLuaRuntimeRewrite::SetCode(const TOptional<FString> &NewCode) {
 	FScopeLock Lock(&Thread.ThreadMutex);
 	Code = NewCode;
 }
 
-bool FFINLuaRuntimeLight::Start() {
+bool FFINLuaRuntimeRewrite::Start() {
 	// UE_LOG(LogFicsItNetworksLua, Display, TEXT("Lua Runtime: trying to start..."));
 
 	RunnableThread = FRunnableThread::Create(&Thread, TEXT("LuaThread"));
@@ -323,7 +321,7 @@ bool FFINLuaRuntimeLight::Start() {
 	return true;
 }
 
-void FFINLuaRuntimeLight::Stop() {
+void FFINLuaRuntimeRewrite::Stop() {
 	if (RunnableThread) {
 		// UE_LOG(LogFicsItNetworksLua, Display, TEXT("Lua Runtime: waiting for thread stop"));
 		RunnableThread->Kill(true);
@@ -332,7 +330,7 @@ void FFINLuaRuntimeLight::Stop() {
 	}
 }
 
-void FFINLuaRuntimeLight::Tick() {
+void FFINLuaRuntimeRewrite::Tick() {
 	const auto Status = GetStatus();
 	if (Status == FFINLuaThread::EState::Running || Status == FFINLuaThread::EState::TickStop) {
 		return;
@@ -341,6 +339,6 @@ void FFINLuaRuntimeLight::Tick() {
 	Thread.FactoryTick();
 }
 
-TOptional<FString> FFINLuaRuntimeLight::GetError() {
+TOptional<FString> FFINLuaRuntimeRewrite::GetError() {
 	return Thread.GetErrorMessage();
 }

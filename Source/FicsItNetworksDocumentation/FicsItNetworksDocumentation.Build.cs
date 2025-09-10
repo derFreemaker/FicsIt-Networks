@@ -26,6 +26,7 @@ public class FicsItNetworksDocumentation : ModuleRules
                 "JsonUtilities",
                 "FicsItNetworks",
                 "FicsItNetworksLua",
+                "FicsItNetworksLuaRewrite",
                 "FicsItReflection",
             }
         );
