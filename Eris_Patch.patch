@@ -106,7 +106,7 @@ index 007704c..7e765b8 100644
  
  
 diff --git a/src/lua.h b/src/lua.h
-index f050dac..bf1595a 100644
+index f050dac..0461eda 100644
 --- a/src/lua.h
 +++ b/src/lua.h
 @@ -308,6 +308,9 @@ LUA_API int (lua_dump) (lua_State *L, lua_Writer writer, void *data, int strip);
@@ -114,7 +114,7 @@ index f050dac..bf1595a 100644
  LUA_API int  (lua_yieldk)     (lua_State *L, int nresults, lua_KContext ctx,
                                 lua_KFunction k);
 +LUA_API void  (lua_yieldafterinstructions) (lua_State *L, long long instructions);
-+/// yields lua universe the after the instruction 
++/// yields lua universe after the current instruction
 +LUA_API void  (lua_yieldafterinstruction) (lua_State *L, int shoudyield);
  LUA_API int  (lua_resume)     (lua_State *L, lua_State *from, int narg,
                                 int *nres);
