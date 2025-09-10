@@ -7,8 +7,8 @@
 #include "SingleThreadRunnable.h"
 #include "Memory/MemoryArena.h"
 
+#include "FINLuaUtilRewrite.h"
 #include "FINQueueLock.h"
-#include "FINLuaUtil.h"
 
 struct FICSITNETWORKSLUAREWRITE_API FFINLuaPanic {
 	FString Message;
@@ -49,7 +49,7 @@ private:
 	EState State = EState::Uninitialized;
 	bool StopRequested = false;
 
-	FCriticalSection ThreadMutex;
+	FRWLock ThreadMutex;
 
 	FFINQueueLock SyncMutex;
 

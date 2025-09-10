@@ -4,9 +4,10 @@
 #include "AsyncWork.h"
 #include "Optional.h"
 
-#include "FicsItFileSystem/Listener.h"
-#include "FicsItKernel/Processor/Processor.h"
 #include "FINLuaRuntimeRewrite.h"
+#include "FicsItFileSystem/Listener.h"
+#include "FicsItKernel/FicsItKernel.h"
+#include "FicsItKernel/Processor/Processor.h"
 
 #include "FINLuaProcessorRewrite.generated.h"
 

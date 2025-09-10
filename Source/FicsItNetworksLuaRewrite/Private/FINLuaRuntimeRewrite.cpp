@@ -3,6 +3,7 @@
 #include <string>
 
 #include "FicsItLogLibrary.h"
+#include "FicsItNetworksLuaRewriteModule.h"
 #include "FILLogContainer.h"
 #include "FINLuaProcessorRewrite.h"
 
@@ -10,7 +11,7 @@ void TickHookF(lua_State *L, lua_Debug *Ar) {
 	auto &Thread = FFINLuaThread::GetFromLuaState(L);
 
 	{
-		FScopeLock Lock(&Thread.ThreadMutex);
+		FWriteScopeLock Lock(Thread.ThreadMutex);
 		if (Thread.State != FFINLuaThread::EState::Running) {
 			// UE_LOG(LogFicsItNetworksLua, Display, TEXT("Lua Thread: tick canceled"));
 			return;
@@ -24,7 +25,7 @@ void TickHookF(lua_State *L, lua_Debug *Ar) {
 }
 
 bool FFINLuaThread::HandleIfStopRequested() {
-	FScopeLock Lock(&ThreadMutex);
+	FWriteScopeLock Lock(ThreadMutex);
 	if (!StopRequested) {
 		return false;
 	}
@@ -48,7 +49,7 @@ int FFINLuaThread::ResumeLua() {
 		}
 
 		{
-			FScopeLock Lock(&ThreadMutex);
+			FWriteScopeLock Lock(ThreadMutex);
 			State = EState::Running;
 		}
 
@@ -57,7 +58,7 @@ int FFINLuaThread::ResumeLua() {
 			Status = lua_resume(LuaThread, L, 0, &NResults);
 			// UE_LOG(LogFicsItNetworksLua, Display, TEXT("Lua Thread: resume finished"));
 		} catch (FFINLuaPanic Panic) {
-			FScopeLock Lock(&ThreadMutex);
+			FWriteScopeLock Lock(ThreadMutex);
 			State = EState::Crashed;
 			ErrorMessage = Panic.Message;
 			return 0;
@@ -81,7 +82,7 @@ int FFINLuaThread::ResumeLua() {
 #endif
 
 	{
-		FScopeLock Lock(&ThreadMutex);
+		FWriteScopeLock Lock(ThreadMutex);
 		switch (Status) {
 			case LUA_OK: {
 				State = EState::Finished;
@@ -131,12 +132,12 @@ FFINLuaRuntimeRewrite* FFINLuaThread::GetRuntime() const {
 }
 
 FFINLuaThread::EState FFINLuaThread::GetStatus() {
-	FScopeLock Lock(&ThreadMutex);
+	FReadScopeLock Lock(ThreadMutex);
 	return State;
 }
 
 const TOptional<FString>& FFINLuaThread::GetErrorMessage() {
-	FScopeLock Lock(&ThreadMutex);
+	FReadScopeLock Lock(ThreadMutex);
 	return ErrorMessage;
 }
 
@@ -214,7 +215,7 @@ static int LuaResume(lua_State *L) {
 }
 
 bool FFINLuaThread::Init() {
-	FScopeLock Lock(&ThreadMutex);
+	FWriteScopeLock Lock(ThreadMutex);
 
 	StopRequested = false;
 	ErrorMessage.Reset();
@@ -264,7 +265,7 @@ uint32 FFINLuaThread::Run() {
 }
 
 void FFINLuaThread::Stop() {
-	FScopeLock Lock(&ThreadMutex);
+	FWriteScopeLock Lock(ThreadMutex);
 
 	StopRequested = true;
 
@@ -278,7 +279,7 @@ void FFINLuaThread::Stop() {
 }
 
 void FFINLuaThread::Exit() {
-	FScopeLock Lock(&ThreadMutex);
+	FWriteScopeLock Lock(ThreadMutex);
 
 	lua_closethread(LuaThread, L);
 	LuaThread = nullptr;
@@ -305,7 +306,7 @@ FFINLuaThread::EState FFINLuaRuntimeRewrite::GetStatus() {
 }
 
 void FFINLuaRuntimeRewrite::SetCode(const TOptional<FString> &NewCode) {
-	FScopeLock Lock(&Thread.ThreadMutex);
+	FWriteScopeLock Lock(Thread.ThreadMutex);
 	Code = NewCode;
 }
 
