@@ -215,6 +215,21 @@ static int LuaResume(lua_State *L) {
 	return r;
 }
 
+static int LuaYieldAfterInstructions(lua_State *L)
+{
+	if (lua_type(L, 1) == LUA_TTHREAD)
+	{
+		lua_State *Thread = lua_tothread(L, 1);
+		const long long Instructions = luaL_checkinteger(L, 2);
+		lua_yieldafterinstructions(Thread, Instructions);
+		return 0;
+	}
+
+	const long long Instructions = luaL_checkinteger(L, 1);
+	lua_yieldafterinstructions(L, Instructions);
+	return 0;
+}
+
 bool FFINLuaThread::Init() {
 	FWriteScopeLock Lock(ThreadMutex);
 
@@ -233,10 +248,16 @@ bool FFINLuaThread::Init() {
 	lua_setglobal(L, "print");
 
 	lua_getglobal(L, "coroutine");
+
 	lua_pushcfunction(L, LuaResume);
 	lua_setfield(L, -2, "resume");
+
+	lua_pushcfunction(L, LuaYieldAfterInstructions);
+	lua_setglobal(L, "yieldafterinstructions");
+
 	lua_pushcfunction(L, LuaMutex);
 	lua_setfield(L, -2, "mutex");
+
 	lua_pop(L, 1);
 
 	lua_setwarnf(L, LuaWarnF, this);

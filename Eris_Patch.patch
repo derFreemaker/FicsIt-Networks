@@ -1,5 +1,5 @@
 diff --git a/src/lcorolib.c b/src/lcorolib.c
-index a9d1e5b..ffb0a8a 100644
+index a9d1e5b..98da7fa 100644
 --- a/src/lcorolib.c
 +++ b/src/lcorolib.c
 @@ -53,7 +53,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
@@ -11,37 +11,6 @@ index a9d1e5b..ffb0a8a 100644
    lua_State *co = getco(L);
    int r;
    r = auxresume(L, co, lua_gettop(L) - 1);
-@@ -114,6 +114,22 @@ static int luaB_yield (lua_State *L) {
- }
- 
- 
-+static int luaB_yieldafterinstructions (lua_State *L)
-+{
-+  if (lua_type(L, 1) == LUA_TTHREAD)
-+  {
-+    lua_State *co = lua_tothread(L, 1);
-+    long long instructions = luaL_checkinteger(L, 2);
-+    lua_yieldafterinstructions(co, instructions);
-+    return 0;
-+  }
-+  
-+  long long instructions = luaL_checkinteger(L, 1);
-+  lua_yieldafterinstructions(L, instructions);
-+  return 0;
-+}
-+
-+
- #define COS_RUN		0
- #define COS_DEAD	1
- #define COS_YIELD	2
-@@ -196,6 +212,7 @@ static const luaL_Reg co_funcs[] = {
-   {"status", luaB_costatus},
-   {"wrap", luaB_cowrap},
-   {"yield", luaB_yield},
-+  {"yieldafterinstructions", luaB_yieldafterinstructions},
-   {"isyieldable", luaB_yieldable},
-   {"close", luaB_close},
-   {NULL, NULL}
 diff --git a/src/ldo.c b/src/ldo.c
 index ea05295..27d1308 100644
 --- a/src/ldo.c
