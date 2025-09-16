@@ -6,6 +6,7 @@
 #include "FicsItNetworksLuaRewriteModule.h"
 #include "FILLogContainer.h"
 #include "FINLuaProcessorRewrite.h"
+#include "API/FFINLuaMutex.h"
 
 void TickHookF(lua_State *L, lua_Debug *Ar) {
 	auto &Thread = FFINLuaThread::GetFromLuaState(L);
@@ -234,6 +235,8 @@ bool FFINLuaThread::Init() {
 	lua_getglobal(L, "coroutine");
 	lua_pushcfunction(L, LuaResume);
 	lua_setfield(L, -2, "resume");
+	lua_pushcfunction(L, LuaMutex);
+	lua_setfield(L, -2, "mutex");
 	lua_pop(L, 1);
 
 	lua_setwarnf(L, LuaWarnF, this);
